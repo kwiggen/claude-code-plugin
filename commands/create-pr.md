@@ -12,6 +12,8 @@ Create a pull request with an AI-generated, industry best-in-class description.
 
 Base branch (optional): {{#if $ARGUMENTS}}$ARGUMENTS{{else}}develop{{/if}}
 
+> **Template variable:** `$ARGUMENTS` contains any text passed after the command (e.g., `/create-pr main` sets `$ARGUMENTS` to "main"). If empty, defaults to "develop".
+
 ## Workflow
 
 ### Step 1: Verify Prerequisites
@@ -22,8 +24,8 @@ Check the current state:
 # Current branch
 git branch --show-current
 
-# Check for unpushed commits
-git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git log origin/develop..HEAD --oneline
+# Check for unpushed commits (handles missing upstream gracefully)
+git log @{upstream}..HEAD --oneline 2>/dev/null || git log origin/develop..HEAD --oneline 2>/dev/null || echo "No upstream branch found"
 
 # Check for uncommitted changes
 git status --porcelain

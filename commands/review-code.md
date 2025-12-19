@@ -17,6 +17,8 @@ Run a structured review using the **code-reviewer** skill.
 ## Input
 User argument: {{#if $ARGUMENTS}}$ARGUMENTS{{else}}(none provided){{/if}}
 
+> **Template variable:** `$ARGUMENTS` contains any text passed after the command (e.g., `/review-code 2` sets `$ARGUMENTS` to "2").
+
 **Argument interpretation:**
 - `1` → Review uncommitted changes
 - `2` → Review last local commit
@@ -35,6 +37,8 @@ If no argument was provided, use the AskUserQuestion tool to prompt the user wit
 - **3 (Unpushed):** collect the combined diff for commits that exist locally but are not pushed to the upstream tracking branch.
   - If no upstream tracking branch exists, ask which remote branch to compare against (e.g., `origin/main`).
 - **PR number (>3):** assume the current git repository and fetch the PR with that number.
+  - Validate the PR number is a positive integer before use
+  - If validation fails, inform the user and prompt for a valid number
   - If the repo cannot be determined from git remotes, ask for `owner/repo` as a fallback.
 
 ## Execute
