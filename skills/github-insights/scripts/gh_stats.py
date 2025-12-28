@@ -13,18 +13,6 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-# Release PR detection patterns (for filtering from regular metrics)
-RELEASE_TITLE_PATTERNS = [
-    "release ",
-    "staging ",
-    "deploy ",
-    "prod push",
-    "production push",
-    "weekly release",
-]
-RELEASE_BRANCH_PATTERNS = ["release/", "staging/", "deploy/"]
-RELEASE_TARGET_BRANCHES = ["staging", "release"]
-
 
 def get_repo_info() -> tuple[str, str]:
     """Get owner/repo from git remote."""
@@ -44,16 +32,13 @@ def get_repo_info() -> tuple[str, str]:
     return data["owner"]["login"], data["name"]
 
 
-def fetch_merged_prs(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> list[dict]:
-    """Fetch all merged PRs since the given date.
+def fetch_merged_prs(owner: str, repo: str, since: datetime) -> list[dict]:
+    """Fetch all merged PRs to develop branch since the given date.
 
     Args:
         owner: Repository owner
         repo: Repository name
         since: Only include PRs merged after this date
-        include_releases: If False (default), exclude release/staging PRs
     """
     prs: list[dict] = []
     page = 1
@@ -69,6 +54,8 @@ def fetch_merged_prs(
                 "GET",
                 "-f",
                 "state=closed",
+                "-f",
+                "base=develop",
                 "-f",
                 f"per_page={per_page}",
                 "-f",
@@ -91,9 +78,6 @@ def fetch_merged_prs(
                 merged_str = pr["merged_at"].replace("Z", "+00:00")
                 merged_at = datetime.fromisoformat(merged_str)
                 if merged_at >= since:
-                    # Skip release PRs by default
-                    if not include_releases and is_release_pr(pr):
-                        continue
                     prs.append(pr)
                 elif merged_at < since:
                     return prs
@@ -179,49 +163,21 @@ def fetch_pr_comments(owner: str, repo: str, pr_number: int) -> list[dict]:
     return json.loads(result.stdout)
 
 
-def is_release_pr(pr: dict) -> bool:
-    """Identify release/staging PRs to filter from regular metrics.
-
-    Release PRs inflate line counts (merging develop to staging/release)
-    and skew merge times (compliance review differs from code review).
-
-    Branch structure:
-    - develop ← feature PRs (regular work, INCLUDE)
-    - staging ← weekly pushes for testing (EXCLUDE)
-    - release ← production pushes (EXCLUDE)
-
-    Patterns are defined in module-level constants for easy customization.
-    """
-    title_lower = pr.get("title", "").lower()
-    branch = pr.get("head", {}).get("ref", "").lower()
-    base_branch = pr.get("base", {}).get("ref", "").lower()
-
-    if any(pattern in title_lower for pattern in RELEASE_TITLE_PATTERNS):
-        return True
-    if any(branch.startswith(pattern) for pattern in RELEASE_BRANCH_PATTERNS):
-        return True
-    if base_branch in RELEASE_TARGET_BRANCHES:
-        return True
-    return False
-
-
 def cmd_prs_merged(
     owner: str,
     repo: str,
     since: datetime,
     show_stats: bool = True,
-    include_releases: bool = False,
 ) -> None:
-    """List merged PRs."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    """List merged PRs to develop branch."""
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
         return
 
     print(f"## PRs Merged ({len(prs)} total)")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
 
     if show_stats:
@@ -245,11 +201,9 @@ def cmd_prs_merged(
             print(f"| #{pr_num} {title} | @{author} | {merged} |")
 
 
-def cmd_leaderboard(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_leaderboard(owner: str, repo: str, since: datetime) -> None:
     """Show PR leaderboard by author."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -274,8 +228,7 @@ def cmd_leaderboard(
     )
 
     print("## Leaderboard")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("| Developer | PRs | Lines Changed |")
     print("|-----------|-----|---------------|")
@@ -285,11 +238,9 @@ def cmd_leaderboard(
         print(f"| @{author} | {stats['count']} | {changes} |")
 
 
-def cmd_activity(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_activity(owner: str, repo: str, since: datetime) -> None:
     """Show activity summary with day/hour breakdown."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -325,8 +276,7 @@ def cmd_activity(
     days = (datetime.now(timezone.utc) - since).days or 1
 
     print("## Activity Summary")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print(f"- **PRs Merged:** {len(prs)}")
     print(f"- **Contributors:** {len(authors)}")
@@ -365,14 +315,12 @@ def cmd_activity(
             print(f"| {hour:02d}:00-{hour:02d}:59 | {count} |")
 
     print()
-    cmd_leaderboard(owner, repo, since, include_releases)
+    cmd_leaderboard(owner, repo, since)
 
 
-def cmd_time_to_merge(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_time_to_merge(owner: str, repo: str, since: datetime) -> None:
     """Show time-to-merge statistics per developer."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -390,8 +338,7 @@ def cmd_time_to_merge(
         all_times.append(merge_time)
 
     print("## Time to Merge")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("| Developer | PRs | Avg Time | Median Time | Fastest | Slowest |")
     print("|-----------|-----|----------|-------------|---------|---------|")
@@ -431,11 +378,9 @@ def cmd_time_to_merge(
         )
 
 
-def cmd_reviews(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_reviews(owner: str, repo: str, since: datetime) -> None:
     """Show review participation report."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -445,62 +390,36 @@ def cmd_reviews(
         lambda: defaultdict(int)
     )
     reviewer_totals: dict[str, int] = defaultdict(int)
-    # Track compliance reviews (reviews on release PRs) separately
-    compliance_reviews: dict[str, int] = defaultdict(int)
 
     for pr in prs:
         author = pr["user"]["login"]
         reviews = fetch_pr_reviews(owner, repo, pr["number"])
-        pr_is_release = is_release_pr(pr)
 
         seen_reviewers: set[str] = set()
         for review in reviews:
             reviewer = review["user"]["login"]
             if reviewer != author and reviewer not in seen_reviewers:
-                if pr_is_release:
-                    compliance_reviews[reviewer] += 1
-                else:
-                    reviewer_stats[reviewer][author] += 1
-                    reviewer_totals[reviewer] += 1
+                reviewer_stats[reviewer][author] += 1
+                reviewer_totals[reviewer] += 1
                 seen_reviewers.add(reviewer)
 
-    if not reviewer_totals and not compliance_reviews:
+    if not reviewer_totals:
         print("No reviews found in the specified time range.")
         return
 
     print("## Review Participation")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("| Reviewer | Reviews Given | Authors Reviewed |")
     print("|----------|---------------|------------------|")
 
-    # Combine totals for sorting (regular + compliance)
-    all_reviewers = (
-        set(reviewer_totals.keys()) | set(compliance_reviews.keys())
-    )
-    reviewer_combined: dict[str, int] = {}
-    for reviewer in all_reviewers:
-        reviewer_combined[reviewer] = reviewer_totals.get(
-            reviewer, 0
-        ) + compliance_reviews.get(reviewer, 0)
-
     sorted_reviewers = sorted(
-        reviewer_combined.items(),
+        reviewer_totals.items(),
         key=lambda x: x[1],
         reverse=True,
     )
 
-    for reviewer, _ in sorted_reviewers:
-        regular_count = reviewer_totals.get(reviewer, 0)
-        compliance_count = compliance_reviews.get(reviewer, 0)
-
-        # Show compliance count in parentheses if applicable
-        if compliance_count > 0 and include_releases:
-            total_str = f"{regular_count} (+{compliance_count} compliance)"
-        else:
-            total_str = str(regular_count) if regular_count > 0 else "0"
-
+    for reviewer, total in sorted_reviewers:
         authors_reviewed = sorted(
             reviewer_stats[reviewer].items(),
             key=lambda x: x[1],
@@ -511,14 +430,12 @@ def cmd_reviews(
             if authors_reviewed
             else "-"
         )
-        print(f"| @{reviewer} | {total_str} | {authors_str} |")
+        print(f"| @{reviewer} | {total} | {authors_str} |")
 
 
-def cmd_pr_size(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_pr_size(owner: str, repo: str, since: datetime) -> None:
     """Show PR size analysis with merge time correlation."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -555,8 +472,7 @@ def cmd_pr_size(
             size_buckets["Large (500+)"].append(pr_data)
 
     print("## PR Size Analysis")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("### Size Distribution\n")
     print("| Size | Count | Avg Merge Time |")
@@ -605,11 +521,9 @@ def cmd_pr_size(
             )
 
 
-def cmd_first_review(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_first_review(owner: str, repo: str, since: datetime) -> None:
     """Show time to first review per developer."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -647,8 +561,7 @@ def cmd_first_review(
         return
 
     print("## Time to First Review")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("| Developer | PRs | Avg Wait | Median Wait | Fastest | Slowest |")
     print("|-----------|-----|----------|-------------|---------|---------|")
@@ -688,11 +601,9 @@ def cmd_first_review(
         )
 
 
-def cmd_review_balance(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_review_balance(owner: str, repo: str, since: datetime) -> None:
     """Show review balance - reviews given vs received per developer."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -722,8 +633,7 @@ def cmd_review_balance(
         return
 
     print("## Review Balance")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("| Developer | Reviews Given | Reviews Received | Ratio |")
     print("|-----------|---------------|------------------|-------|")
@@ -763,11 +673,9 @@ def cmd_review_balance(
         print(f"\n**Team Balance:** {balance_status} {ratio_str}")
 
 
-def cmd_reverts(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_reverts(owner: str, repo: str, since: datetime) -> None:
     """Track reverts and hotfixes."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -816,8 +724,7 @@ def cmd_reverts(
     hotfix_count = len(hotfixes)
 
     print("## Reverts & Hotfixes")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("### Summary\n")
 
@@ -860,11 +767,9 @@ def cmd_reverts(
         print("\n*No reverts or hotfixes found in this time range.*")
 
 
-def cmd_review_depth(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_review_depth(owner: str, repo: str, since: datetime) -> None:
     """Detect rubber stamp reviews vs thorough reviews."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -877,12 +782,6 @@ def cmd_review_depth(
     )
 
     for pr in prs:
-        # Skip release PRs for rubber-stamp detection - reviews on release PRs
-        # are compliance reviews, not code reviews, and would falsely appear
-        # as rubber stamps
-        if is_release_pr(pr):
-            continue
-
         pr_number = pr["number"]
         created = parse_datetime(pr["created_at"])
         author = pr["user"]["login"]
@@ -946,8 +845,7 @@ def cmd_review_depth(
     rubber_pct = 100 - thorough_pct
 
     print("## Review Depth Analysis")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("### Summary\n")
     print(f"- **Thorough Reviews:** {thorough_pct:.0f}%")
@@ -995,11 +893,9 @@ def cmd_review_depth(
             print(f"| @{reviewer} | {avg_time:.0f} min | {avg_comments:.1f} |")
 
 
-def cmd_review_cycles(
-    owner: str, repo: str, since: datetime, include_releases: bool = False
-) -> None:
+def cmd_review_cycles(owner: str, repo: str, since: datetime) -> None:
     """Track rounds of feedback before merge."""
-    prs = fetch_merged_prs(owner, repo, since, include_releases)
+    prs = fetch_merged_prs(owner, repo, since)
 
     if not prs:
         print("No PRs merged in the specified time range.")
@@ -1053,8 +949,7 @@ def cmd_review_cycles(
         return
 
     print("## Review Cycles")
-    if not include_releases:
-        print("*Excluding release/staging PRs*")
+    print("*PRs merged to develop*")
     print()
     print("### Summary\n")
     print("| Cycles | Count | Percentage |")
@@ -1108,41 +1003,40 @@ def cmd_all(
     repo: str,
     since: datetime,
     fetch_stats: bool = True,
-    include_releases: bool = False,
 ) -> None:
     """Run all reports with visual separators."""
     print_report_separator("PRs Merged Overview")
-    cmd_prs_merged(owner, repo, since, fetch_stats, include_releases)
+    cmd_prs_merged(owner, repo, since, fetch_stats)
 
     print_report_separator("Contributor Leaderboard")
-    cmd_leaderboard(owner, repo, since, include_releases)
+    cmd_leaderboard(owner, repo, since)
 
     print_report_separator("Activity Patterns")
-    cmd_activity(owner, repo, since, include_releases)
+    cmd_activity(owner, repo, since)
 
     print_report_separator("Time to Merge")
-    cmd_time_to_merge(owner, repo, since, include_releases)
+    cmd_time_to_merge(owner, repo, since)
 
     print_report_separator("PR Size Analysis")
-    cmd_pr_size(owner, repo, since, include_releases)
+    cmd_pr_size(owner, repo, since)
 
     print_report_separator("Time to First Review")
-    cmd_first_review(owner, repo, since, include_releases)
+    cmd_first_review(owner, repo, since)
 
     print_report_separator("Review Activity")
-    cmd_reviews(owner, repo, since, include_releases)
+    cmd_reviews(owner, repo, since)
 
     print_report_separator("Review Balance")
-    cmd_review_balance(owner, repo, since, include_releases)
+    cmd_review_balance(owner, repo, since)
 
     print_report_separator("Review Depth")
-    cmd_review_depth(owner, repo, since, include_releases)
+    cmd_review_depth(owner, repo, since)
 
     print_report_separator("Review Cycles")
-    cmd_review_cycles(owner, repo, since, include_releases)
+    cmd_review_cycles(owner, repo, since)
 
     print_report_separator("Reverts")
-    cmd_reverts(owner, repo, since, include_releases)
+    cmd_reverts(owner, repo, since)
 
     print("\n" + "=" * 60)
     print("  All Reports Complete")
@@ -1192,11 +1086,6 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip fetching line stats (faster)",
     )
-    parser.add_argument(
-        "--include-releases",
-        action="store_true",
-        help="Include release/staging PRs in analysis (excluded by default)",
-    )
     return parser.parse_args()
 
 
@@ -1211,32 +1100,30 @@ def main() -> None:
     else:
         since = datetime.now(timezone.utc) - timedelta(days=args.days)
 
-    inc_rel = args.include_releases
-
     if args.action == "all":
-        cmd_all(owner, repo, since, not args.no_stats, inc_rel)
+        cmd_all(owner, repo, since, not args.no_stats)
     elif args.action == "prs-merged":
-        cmd_prs_merged(owner, repo, since, not args.no_stats, inc_rel)
+        cmd_prs_merged(owner, repo, since, not args.no_stats)
     elif args.action == "leaderboard":
-        cmd_leaderboard(owner, repo, since, inc_rel)
+        cmd_leaderboard(owner, repo, since)
     elif args.action == "activity":
-        cmd_activity(owner, repo, since, inc_rel)
+        cmd_activity(owner, repo, since)
     elif args.action == "time-to-merge":
-        cmd_time_to_merge(owner, repo, since, inc_rel)
+        cmd_time_to_merge(owner, repo, since)
     elif args.action == "reviews":
-        cmd_reviews(owner, repo, since, inc_rel)
+        cmd_reviews(owner, repo, since)
     elif args.action == "pr-size":
-        cmd_pr_size(owner, repo, since, inc_rel)
+        cmd_pr_size(owner, repo, since)
     elif args.action == "first-review":
-        cmd_first_review(owner, repo, since, inc_rel)
+        cmd_first_review(owner, repo, since)
     elif args.action == "review-balance":
-        cmd_review_balance(owner, repo, since, inc_rel)
+        cmd_review_balance(owner, repo, since)
     elif args.action == "reverts":
-        cmd_reverts(owner, repo, since, inc_rel)
+        cmd_reverts(owner, repo, since)
     elif args.action == "review-depth":
-        cmd_review_depth(owner, repo, since, inc_rel)
+        cmd_review_depth(owner, repo, since)
     elif args.action == "review-cycles":
-        cmd_review_cycles(owner, repo, since, inc_rel)
+        cmd_review_cycles(owner, repo, since)
 
 
 if __name__ == "__main__":
