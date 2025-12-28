@@ -26,6 +26,7 @@ Analyze team GitHub activity for the current repository.
 | `reverts` | Track reverts and hotfixes |
 | `review-depth` | Detect rubber stamp reviews |
 | `review-cycles` | Rounds of feedback before merge |
+| `all` | Run all reports with visual separators |
 
 ## Usage
 
@@ -93,6 +94,8 @@ python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-cycl
 | "are reviews thorough" | `review-depth` | - |
 | "rubber stamp reviews" | `review-depth` | - |
 | "how many review rounds" | `review-cycles` | - |
+| "run all reports" | `all` | - |
+| "full team analysis" | `all` | - |
 
 ## Output
 

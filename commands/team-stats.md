@@ -29,6 +29,7 @@ Parse `$ARGUMENTS` to determine action and time range:
 | `reverts` or `reverts N` | reverts | N or 30 |
 | `depth` or `depth N` | review-depth | N or 30 |
 | `cycles` or `cycles N` | review-cycles | N or 30 |
+| `all` or `all N` | all | N or 30 |
 | Just a number (e.g., `7`) | activity | N |
 | Empty | activity | 30 |
 
@@ -45,6 +46,7 @@ Parse `$ARGUMENTS` to determine action and time range:
 - `/team-stats reverts` → track reverts and hotfixes
 - `/team-stats depth` → detect rubber stamp reviews
 - `/team-stats cycles` → rounds of feedback before merge
+- `/team-stats all` → run all reports for last 30 days
 
 ## Execution
 
