@@ -33,11 +33,17 @@ from gh_stats import (  # noqa: E402
 # PR Classification Functions
 # -----------------------------------------------------------------------------
 
-# Release train branch patterns
+# Release train branch patterns (→ staging)
 RELEASE_TRAIN_PATTERNS = [
     r"^staging-\d{2}-\d{2}-\d{2}$",   # staging-12-21-25
     r"^release-\d{2}-\d{2}-\d{2}$",   # release-12-14-25
     r"^release-to-staging$",
+]
+
+# Promotion branch patterns (→ release)
+PROMOTION_PATTERNS = [
+    r"^release-\d{2}-\d{2}-\d{2}$",   # release-12-22-25
+    r"^staging$",                       # direct staging→release (legacy)
 ]
 
 
@@ -50,11 +56,11 @@ def is_release_train(pr: dict) -> bool:
 
 
 def is_promotion(pr: dict) -> bool:
-    """Check if PR is a promotion (staging → release)."""
-    return (
-        pr.get("base", {}).get("ref") == "release"
-        and pr.get("head", {}).get("ref") == "staging"
-    )
+    """Check if PR is a promotion (dated branch → release)."""
+    if pr.get("base", {}).get("ref") != "release":
+        return False
+    head_ref = pr.get("head", {}).get("ref", "")
+    return any(re.match(p, head_ref) for p in PROMOTION_PATTERNS)
 
 
 def is_backmerge(pr: dict) -> bool:
