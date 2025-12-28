@@ -141,6 +141,15 @@ def format_duration(td: timedelta) -> str:
         return f"{days:.1f} days"
 
 
+def print_report_separator(title: str) -> None:
+    """Print a visual separator between reports."""
+    print("\n")
+    print("=" * 60)
+    print(f"  {title}")
+    print("=" * 60)
+    print()
+
+
 def parse_datetime(iso_date: str) -> datetime:
     """Parse ISO datetime string to datetime object."""
     return datetime.fromisoformat(iso_date.replace("Z", "+00:00"))
@@ -1094,12 +1103,59 @@ def cmd_review_cycles(
         print(f"\n{avg_str} | {med_str}")
 
 
+def cmd_all(
+    owner: str,
+    repo: str,
+    since: datetime,
+    fetch_stats: bool = True,
+    include_releases: bool = False,
+) -> None:
+    """Run all reports with visual separators."""
+    print_report_separator("PRs Merged Overview")
+    cmd_prs_merged(owner, repo, since, fetch_stats, include_releases)
+
+    print_report_separator("Contributor Leaderboard")
+    cmd_leaderboard(owner, repo, since, include_releases)
+
+    print_report_separator("Activity Patterns")
+    cmd_activity(owner, repo, since, include_releases)
+
+    print_report_separator("Time to Merge")
+    cmd_time_to_merge(owner, repo, since, include_releases)
+
+    print_report_separator("PR Size Analysis")
+    cmd_pr_size(owner, repo, since, include_releases)
+
+    print_report_separator("Time to First Review")
+    cmd_first_review(owner, repo, since, include_releases)
+
+    print_report_separator("Review Activity")
+    cmd_reviews(owner, repo, since, include_releases)
+
+    print_report_separator("Review Balance")
+    cmd_review_balance(owner, repo, since, include_releases)
+
+    print_report_separator("Review Depth")
+    cmd_review_depth(owner, repo, since, include_releases)
+
+    print_report_separator("Review Cycles")
+    cmd_review_cycles(owner, repo, since, include_releases)
+
+    print_report_separator("Reverts")
+    cmd_reverts(owner, repo, since, include_releases)
+
+    print("\n" + "=" * 60)
+    print("  All Reports Complete")
+    print("=" * 60)
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="GitHub team stats")
     parser.add_argument(
         "--action",
         choices=[
+            "all",
             "prs-merged",
             "leaderboard",
             "activity",
@@ -1157,7 +1213,9 @@ def main() -> None:
 
     inc_rel = args.include_releases
 
-    if args.action == "prs-merged":
+    if args.action == "all":
+        cmd_all(owner, repo, since, not args.no_stats, inc_rel)
+    elif args.action == "prs-merged":
         cmd_prs_merged(owner, repo, since, not args.no_stats, inc_rel)
     elif args.action == "leaderboard":
         cmd_leaderboard(owner, repo, since, inc_rel)
