@@ -17,10 +17,15 @@ Analyze team GitHub activity for the current repository.
 |--------|-------------|
 | `prs-merged` | List all PRs merged in a time period |
 | `leaderboard` | Rank contributors by PR count and lines changed |
-| `activity` | Summary stats + leaderboard combined |
+| `activity` | Summary stats + leaderboard + day/hour breakdown |
 | `time-to-merge` | Merge velocity per developer (avg/median) |
 | `reviews` | Who reviews whose code |
 | `pr-size` | Size distribution and bottleneck detection |
+| `first-review` | Time to first review per developer |
+| `review-balance` | Reviews given vs received ratio |
+| `reverts` | Track reverts and hotfixes |
+| `review-depth` | Detect rubber stamp reviews |
+| `review-cycles` | Rounds of feedback before merge |
 
 ## Usage
 
@@ -54,6 +59,21 @@ python {baseDir}/skills/github-insights/scripts/gh_stats.py --action reviews --d
 
 # PR size analysis with bottleneck detection
 python {baseDir}/skills/github-insights/scripts/gh_stats.py --action pr-size --days 30
+
+# Time to first review
+python {baseDir}/skills/github-insights/scripts/gh_stats.py --action first-review --days 30
+
+# Review balance (given vs received)
+python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-balance --days 30
+
+# Reverts and hotfixes tracking
+python {baseDir}/skills/github-insights/scripts/gh_stats.py --action reverts --days 30
+
+# Rubber stamp detection
+python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-depth --days 30
+
+# Review cycles (rounds of feedback)
+python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-cycles --days 30
 ```
 
 ## Interpreting User Requests
@@ -67,6 +87,12 @@ python {baseDir}/skills/github-insights/scripts/gh_stats.py --action pr-size --d
 | "who is reviewing code" | `reviews` | - |
 | "are big PRs slowing us down" | `pr-size` | - |
 | "PR bottlenecks" | `pr-size` | - |
+| "how long until first review" | `first-review` | - |
+| "is review load balanced" | `review-balance` | - |
+| "any reverts or hotfixes" | `reverts` | - |
+| "are reviews thorough" | `review-depth` | - |
+| "rubber stamp reviews" | `review-depth` | - |
+| "how many review rounds" | `review-cycles` | - |
 
 ## Output
 

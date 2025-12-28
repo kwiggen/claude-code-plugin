@@ -5,7 +5,8 @@
       "WebSearch",
       "Bash(python:*)",
       "Bash(cat:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(awk:*)"
     ]
   }
 }

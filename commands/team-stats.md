@@ -1,6 +1,6 @@
 ---
-description: "Show team GitHub activity - PRs, leaderboard, merge times, reviews, size analysis"
-argument-hint: "[prs|leaderboard|activity|merge-time|reviews|size] [days]"
+description: "Show team GitHub activity - PRs, reviews, merge times, bottlenecks, quality signals"
+argument-hint: "[action] [days]"
 allowed-tools: ["Bash(python:*)", "Bash(gh:*)"]
 ---
 
@@ -24,6 +24,11 @@ Parse `$ARGUMENTS` to determine action and time range:
 | `merge-time` or `merge-time N` | time-to-merge | N or 30 |
 | `reviews` or `reviews N` | reviews | N or 30 |
 | `size` or `size N` | pr-size | N or 30 |
+| `first-review` or `first-review N` | first-review | N or 30 |
+| `balance` or `balance N` | review-balance | N or 30 |
+| `reverts` or `reverts N` | reverts | N or 30 |
+| `depth` or `depth N` | review-depth | N or 30 |
+| `cycles` or `cycles N` | review-cycles | N or 30 |
 | Just a number (e.g., `7`) | activity | N |
 | Empty | activity | 30 |
 
@@ -35,6 +40,11 @@ Parse `$ARGUMENTS` to determine action and time range:
 - `/team-stats merge-time` → time-to-merge analysis
 - `/team-stats reviews` → review participation report
 - `/team-stats size` → PR size analysis with bottleneck detection
+- `/team-stats first-review` → time to first review per developer
+- `/team-stats balance` → reviews given vs received ratio
+- `/team-stats reverts` → track reverts and hotfixes
+- `/team-stats depth` → detect rubber stamp reviews
+- `/team-stats cycles` → rounds of feedback before merge
 
 ## Execution
 
