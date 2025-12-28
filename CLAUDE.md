@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Claude Code plugin that provides two commands (`/review-code`, `/create-pr`) backed by two skills (`code-reviewer`, `pr-writer`).
+This is a Claude Code plugin that provides commands for code review, PR creation, and team GitHub insights.
+
+**Commands:**
+- `/review-code` - Code review (backed by `code-reviewer` skill)
+- `/create-pr` - PR creation (backed by `pr-writer` skill)
+- `/team-stats` - GitHub team activity (backed by `github-insights` skill)
 
 ## Architecture
 
@@ -46,3 +51,13 @@ description: |
 ## Version Management
 
 Bump version in `.claude-plugin/plugin.json` when making changes.
+
+## Before Completing Tasks
+
+Always check for lint/type errors before saying you're done:
+
+1. **Python files**: Run `python -m py_compile <file>` and check IDE diagnostics
+2. **TypeScript files**: Run `tsc --noEmit` and check IDE diagnostics
+3. **Use `mcp__ide__getDiagnostics`** to check for red squiggles in the IDE
+
+Fix all errors before marking a task complete.
