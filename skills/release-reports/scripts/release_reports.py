@@ -29,6 +29,10 @@ from gh_stats import (  # noqa: E402
 )
 
 
+# Module-level flag to avoid repeated git fetches
+_remote_fetched = False
+
+
 # -----------------------------------------------------------------------------
 # PR Classification Functions
 # -----------------------------------------------------------------------------
@@ -180,8 +184,130 @@ def get_backmerges_since(
     return [pr for pr in develop_prs if is_backmerge(pr)]
 
 
-def has_backmerge_after(hotfix: dict, backmerges: list[dict]) -> bool:
-    """Check if a hotfix has been backmerged."""
+def ensure_remote_updated() -> bool:
+    """Fetch origin/develop to ensure we have the latest state.
+
+    Only fetches once per script execution to avoid excessive network calls.
+
+    Returns:
+        True if fetch succeeded or was already done, False on error
+    """
+    global _remote_fetched
+
+    if _remote_fetched:
+        return True
+
+    try:
+        result = subprocess.run(
+            ["git", "fetch", "origin", "develop"],
+            capture_output=True,
+            text=True,
+            timeout=30,  # Network operation, allow more time
+        )
+        _remote_fetched = True
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return False
+
+
+def is_commit_reachable_from_develop(commit_sha: str) -> bool:
+    """Check if a commit is reachable from origin/develop using git.
+
+    Uses 'git merge-base --is-ancestor' which returns:
+    - Exit code 0: commit IS an ancestor (reachable)
+    - Exit code 1: commit is NOT an ancestor
+    - Exit code 128+: error (invalid SHA, not a repo, etc.)
+
+    Args:
+        commit_sha: The commit SHA to check
+
+    Returns:
+        True if commit is reachable from origin/develop, False otherwise
+    """
+    if not commit_sha:
+        return False
+
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", commit_sha, "origin/develop"],
+            capture_output=True,
+            text=True,
+            timeout=10,  # Avoid hanging on large repos
+        )
+        # Exit code 0 = is ancestor (reachable), 1 = not ancestor, other = error
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        # If git is unavailable or times out, return False to fall back
+        return False
+
+
+def get_backmerged_commits(hotfixes: list[dict]) -> set[str]:
+    """Get set of merge commit SHAs that are reachable from origin/develop.
+
+    More efficient than individual checks when processing many hotfixes,
+    as it ensures remote is fetched only once.
+
+    Args:
+        hotfixes: List of hotfix PR dictionaries with 'merge_commit_sha' field
+
+    Returns:
+        Set of commit SHAs that are reachable from origin/develop
+    """
+    # Ensure we have the latest remote state
+    ensure_remote_updated()
+
+    reachable: set[str] = set()
+
+    for hf in hotfixes:
+        # GitHub REST API returns merge_commit_sha as a top-level string field
+        merge_sha = hf.get("merge_commit_sha")
+
+        if merge_sha and is_commit_reachable_from_develop(merge_sha):
+            reachable.add(merge_sha)
+
+    return reachable
+
+
+def has_backmerge_after(
+    hotfix: dict,
+    backmerges: list[dict],
+    reachable_commits: set[str] | None = None,
+) -> bool:
+    """Check if a hotfix has been backmerged to develop.
+
+    Uses two detection methods in order of reliability:
+    1. Git-based: Check if merge commit is reachable from origin/develop
+    2. Text-based: Look for PR references in backmerge descriptions (fallback)
+
+    Args:
+        hotfix: The hotfix PR dictionary (must include merge_commit_sha field)
+        backmerges: List of backmerge PRs (staging -> develop)
+        reachable_commits: Optional pre-computed set of commits reachable from
+            develop. If None, will check individually (less efficient).
+
+    Returns:
+        True if hotfix has been backmerged, False otherwise
+    """
+    # Method 1: Git-based detection (most reliable)
+    # GitHub REST API returns merge_commit_sha as a top-level string field
+    merge_sha = hotfix.get("merge_commit_sha")
+
+    if merge_sha:
+        if reachable_commits is not None:
+            # Use pre-computed set (efficient for batch operations)
+            if merge_sha in reachable_commits:
+                return True
+        else:
+            # Individual check (fallback if set not provided)
+            ensure_remote_updated()
+            if is_commit_reachable_from_develop(merge_sha):
+                return True
+
+    # Method 2: Text-based detection (fallback for edge cases)
+    # This catches cases where:
+    # - merge commit SHA is missing from API response
+    # - Git is unavailable in the execution environment
+    # - The commit was squashed/rebased with a different SHA
     hotfix_merged = parse_datetime(hotfix["merged_at"])
     hotfix_title = hotfix.get("title", "").lower()
     hotfix_number = hotfix["number"]
@@ -297,8 +423,10 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
         if is_hotfix_to_staging(pr)
     ]
     backmerges = get_backmerges_since(owner, repo, since_date)
+    reachable = get_backmerged_commits(hotfixes)  # Pre-compute for efficiency
     missing_backmerge = [
-        hf for hf in hotfixes if not has_backmerge_after(hf, backmerges)
+        hf for hf in hotfixes
+        if not has_backmerge_after(hf, backmerges, reachable)
     ]
 
     train_date = current_date.strftime("%B %d")
@@ -505,11 +633,15 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     release_hotfixes = [pr for pr in release_prs if is_hotfix_to_release(pr)]
 
     # Check backmerge status for all hotfixes
+    # Pre-compute reachable commits for all hotfixes (more efficient)
+    all_hotfixes = staging_hotfixes + release_hotfixes
+    reachable = get_backmerged_commits(all_hotfixes)
+
     backmerges = get_backmerges_since(owner, repo, staging_date)
     for hf in staging_hotfixes:
-        hf["backmerged"] = has_backmerge_after(hf, backmerges)
+        hf["backmerged"] = has_backmerge_after(hf, backmerges, reachable)
     for hf in release_hotfixes:
-        hf["backmerged"] = has_backmerge_after(hf, backmerges)
+        hf["backmerged"] = has_backmerge_after(hf, backmerges, reachable)
 
     has_hotfixes = len(staging_hotfixes) > 0 or len(release_hotfixes) > 0
 
