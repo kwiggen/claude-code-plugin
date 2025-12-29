@@ -331,6 +331,67 @@ def has_backmerge_after(
     return False
 
 
+def get_pr_area_stats(owner: str, repo: str, pr_number: int) -> dict[str, dict]:
+    """Get lines added/removed per codebase area.
+
+    Returns dict with keys 'FE', 'BE', 'CT', 'other', each containing
+    {'additions': N, 'deletions': M}.
+    """
+    result = subprocess.run(
+        ["gh", "api", f"repos/{owner}/{repo}/pulls/{pr_number}/files",
+         "--paginate"],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        return {}
+
+    files = json.loads(result.stdout)
+    area_stats: dict[str, dict] = {
+        "FE": {"additions": 0, "deletions": 0},
+        "BE": {"additions": 0, "deletions": 0},
+        "CT": {"additions": 0, "deletions": 0},
+        "other": {"additions": 0, "deletions": 0},
+    }
+
+    for file in files:
+        filename = file.get("filename", "")
+        additions = file.get("additions", 0)
+        deletions = file.get("deletions", 0)
+
+        if filename.startswith("frontend/"):
+            area = "FE"
+        elif filename.startswith("backend/"):
+            area = "BE"
+        elif filename.startswith("content-tool/"):
+            area = "CT"
+        else:
+            area = "other"
+
+        area_stats[area]["additions"] += additions
+        area_stats[area]["deletions"] += deletions
+
+    return area_stats
+
+
+def pr_link(owner: str, repo: str, pr_number: int) -> str:
+    """Return GitHub PR URL."""
+    return f"https://github.com/{owner}/{repo}/pull/{pr_number}"
+
+
+def format_area_breakdown(area_stats: dict) -> str:
+    """Format area stats as compact string, only showing non-zero areas."""
+    parts = []
+    for area in ["FE", "BE", "CT", "other"]:
+        stats = area_stats.get(area, {})
+        add = stats.get("additions", 0)
+        delete = stats.get("deletions", 0)
+        if add > 0 or delete > 0:
+            parts.append(f"{area}:+{add}/-{delete}")
+    return ", ".join(parts) if parts else "—"
+
+
 def find_quick_approvals(
     owner: str, repo: str, prs: list[dict]
 ) -> list[dict]:
@@ -405,17 +466,24 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
     total_deletions = 0
     contributors: set[str] = set()
 
-    for pr in feature_prs:
+    # Fetch stats and area breakdown for all PRs
+    print(f"Fetching stats for {len(feature_prs)} PRs...", file=sys.stderr)
+    for i, pr in enumerate(feature_prs, 1):
+        print(f"  [{i}/{len(feature_prs)}] #{pr['number']}", file=sys.stderr)
         stats = get_pr_stats(owner, repo, pr["number"])
         pr["stats"] = stats
+        pr["area_stats"] = get_pr_area_stats(owner, repo, pr["number"])
         total_additions += stats["additions"]
         total_deletions += stats["deletions"]
         contributors.add(pr["user"]["login"])
+    print(file=sys.stderr)
 
-    large_prs = [
-        pr for pr in feature_prs
-        if pr["stats"]["additions"] + pr["stats"]["deletions"] >= 500
-    ]
+    # Sort PRs by total lines changed (descending)
+    sorted_prs = sorted(
+        feature_prs,
+        key=lambda pr: pr["stats"]["additions"] + pr["stats"]["deletions"],
+        reverse=True,
+    )
 
     quick_approvals = find_quick_approvals(owner, repo, feature_prs)
 
@@ -439,35 +507,54 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
     print(f"Lines: +{total_additions:,} / -{total_deletions:,}")
     print()
 
+    # All PRs sorted by size
+    print("📋 *All PRs* (sorted by lines changed)")
+    print()
+    print("| PR | Lines | Author | Title | Areas |")
+    print("|-----|-------|--------|-------|-------|")
+    for pr in sorted_prs:
+        add = pr["stats"]["additions"]
+        delete = pr["stats"]["deletions"]
+        title = pr["title"][:35] + ("..." if len(pr["title"]) > 35 else "")
+        title = title.replace("|", "\\|")
+        breakdown = format_area_breakdown(pr["area_stats"])
+        link = pr_link(owner, repo, pr["number"])
+        print(f"| [#{pr['number']}]({link}) | +{add}/-{delete} | "
+              f"@{pr['user']['login']} | {title} | {breakdown} |")
+    print()
+
+    print("━" * 40)
+    print()
+
     print("⚠️ *Risk Flags*")
     print()
 
+    # Large PRs (500+ lines)
+    large_prs = [pr for pr in sorted_prs
+                 if pr["stats"]["additions"] + pr["stats"]["deletions"] >= 500]
     if large_prs:
-        print("Large PRs (500+ lines):")
-        for pr in large_prs:
+        print(f"Large PRs (500+ lines): {len(large_prs)} PRs")
+        for pr in large_prs[:3]:
             lines = pr["stats"]["additions"] + pr["stats"]["deletions"]
-            title = pr["title"][:50] + ("..." if len(pr["title"]) > 50 else "")
-            print(f"  #{pr['number']} @{pr['user']['login']} \"{title}\" "
-                  f"({lines} lines)")
+            print(f"  #{pr['number']} ({lines} lines)")
     else:
         print("Large PRs (500+ lines): None ✅")
     print()
 
     if quick_approvals:
-        print("Quick approvals (<5 min, large or no comments):")
-        for pr in quick_approvals:
-            title = pr["title"][:50] + ("..." if len(pr["title"]) > 50 else "")
-            print(f"  #{pr['number']} @{pr['user']['login']} \"{title}\"")
+        print(f"Quick approvals (<5 min, large or no comments): "
+              f"{len(quick_approvals)} PRs")
+        for pr in quick_approvals[:3]:
+            print(f"  #{pr['number']} @{pr['user']['login']}")
     else:
         print("Quick approvals: None ✅")
     print()
 
     if missing_backmerge:
-        print("Hotfixes needing backmerge (from previous cycle):")
+        print(f"Hotfixes needing backmerge: {len(missing_backmerge)} PRs")
         for hf in missing_backmerge:
-            title = hf["title"][:50] + ("..." if len(hf["title"]) > 50 else "")
-            print(f"  #{hf['number']} → staging @{hf['user']['login']} "
-                  f"\"{title}\"")
+            link = pr_link(owner, repo, hf["number"])
+            print(f"  #{hf['number']} @{hf['user']['login']} {link}")
     else:
         print("Hotfixes needing backmerge: None ✅")
     print()
@@ -618,12 +705,25 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     total_deletions = 0
     contributor_counts: dict[str, int] = {}
 
-    for pr in feature_prs:
+    # Fetch stats and area breakdown for all PRs
+    print(f"Fetching stats for {len(feature_prs)} PRs...", file=sys.stderr)
+    for i, pr in enumerate(feature_prs, 1):
+        print(f"  [{i}/{len(feature_prs)}] #{pr['number']}", file=sys.stderr)
         stats = get_pr_stats(owner, repo, pr["number"])
+        pr["stats"] = stats
+        pr["area_stats"] = get_pr_area_stats(owner, repo, pr["number"])
         total_additions += stats["additions"]
         total_deletions += stats["deletions"]
         author = pr["user"]["login"]
         contributor_counts[author] = contributor_counts.get(author, 0) + 1
+    print(file=sys.stderr)
+
+    # Sort PRs by total lines changed (descending)
+    sorted_prs = sorted(
+        feature_prs,
+        key=lambda pr: pr["stats"]["additions"] + pr["stats"]["deletions"],
+        reverse=True,
+    )
 
     # Staging hotfixes (during QA)
     staging_prs = fetch_prs_by_base(owner, repo, "staging", staging_date)
@@ -708,6 +808,22 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
             print(f"  @{author}    {count} PRs")
     print()
 
+    # All PRs sorted by size
+    print("📋 *All PRs* (sorted by lines changed)")
+    print()
+    print("| PR | Lines | Author | Title | Areas |")
+    print("|-----|-------|--------|-------|-------|")
+    for pr in sorted_prs:
+        add = pr["stats"]["additions"]
+        delete = pr["stats"]["deletions"]
+        title = pr["title"][:35] + ("..." if len(pr["title"]) > 35 else "")
+        title = title.replace("|", "\\|")
+        breakdown = format_area_breakdown(pr["area_stats"])
+        link = pr_link(owner, repo, pr["number"])
+        print(f"| [#{pr['number']}]({link}) | +{add}/-{delete} | "
+              f"@{pr['user']['login']} | {title} | {breakdown} |")
+    print()
+
     print("━" * 40)
     print()
 
@@ -715,11 +831,15 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print(f"🚨 *Staging Hotfixes* ({len(staging_hotfixes)} PRs during QA)")
     print()
     if staging_hotfixes:
+        print("| PR | Author | Title | Status |")
+        print("|-----|--------|-------|--------|")
         for hf in staging_hotfixes:
             title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
-            status = "✅ backmerged" if hf["backmerged"] else "❌ NEEDS BACKMERGE"
-            print(f"#{hf['number']}  @{hf['user']['login']}  \"{title}\"  "
-                  f"{status}")
+            title = title.replace("|", "\\|")
+            status = "✅" if hf["backmerged"] else "❌ BACKMERGE"
+            link = pr_link(owner, repo, hf["number"])
+            print(f"| [#{hf['number']}]({link}) | @{hf['user']['login']} | "
+                  f"{title} | {status} |")
     else:
         print("None 🎉")
     print()
@@ -731,11 +851,15 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print(f"🔥 *Release Hotfixes* ({len(release_hotfixes)} PRs to prod)")
     print()
     if release_hotfixes:
+        print("| PR | Author | Title | Status |")
+        print("|-----|--------|-------|--------|")
         for hf in release_hotfixes:
             title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
-            status = "✅ backmerged" if hf["backmerged"] else "❌ NEEDS BACKMERGE"
-            print(f"#{hf['number']}  @{hf['user']['login']}  \"{title}\"  "
-                  f"{status}")
+            title = title.replace("|", "\\|")
+            status = "✅" if hf["backmerged"] else "❌ BACKMERGE"
+            link = pr_link(owner, repo, hf["number"])
+            print(f"| [#{hf['number']}]({link}) | @{hf['user']['login']} | "
+                  f"{title} | {status} |")
     else:
         print("None 🎉")
     print()
