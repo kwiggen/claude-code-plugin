@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 # Import shared helpers from gh_stats
 _script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -649,16 +650,21 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     action_items = generate_action_items(staging_hotfixes, release_hotfixes)
 
     # --- Output ---
+    pacific = ZoneInfo("America/Los_Angeles")
+
     prev_date_str = since_date.strftime("%b %d")
     curr_date_str = staging_date.strftime("%b %d")
     print(f"📦 *Release Retro: {prev_date_str} → {curr_date_str}*")
+    print("(All times Pacific)")
     print()
 
-    staging_str = staging_date.strftime("%a %b %d %I%p")
+    staging_pt = staging_date.astimezone(pacific)
+    staging_str = staging_pt.strftime("%a %b %d %I:%M%p") + " PT"
     print(f"Staging: {staging_str} ✅")
 
     if prod_date:
-        prod_str = prod_date.strftime("%a %b %d %I%p")
+        prod_pt = prod_date.astimezone(pacific)
+        prod_str = prod_pt.strftime("%a %b %d %I:%M%p") + " PT"
         print(f"Prod: {prod_str} ✅")
     else:
         print("Prod: Pending")
