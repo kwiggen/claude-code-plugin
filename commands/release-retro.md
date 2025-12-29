@@ -32,10 +32,12 @@ python {baseDir}/skills/release-reports/scripts/release_reports.py --action retr
 ## What It Shows
 
 - **Timeline**: Staging date, prod date
-- **Outcome**: Clean release or hotfixes required
-- **What Shipped**: PRs, contributors, lines changed
-- **Hotfixes During QA**: Direct PRs to staging with backmerge status
-- **Trend**: Last 4 releases showing pattern
+- **Outcome**: Clean release or hotfixes required, with counts by type
+- **What Shipped**: PRs, contributors, lines changed, top contributors
+- **Staging Hotfixes**: PRs merged to staging during QA (not part of release train)
+- **Release Hotfixes**: PRs merged directly to release (prod hotfixes)
+- **Trend**: Last 4 releases with staging/release hotfix breakdown
+- **Action Items**: Outstanding backmerge reminders
 
 ## Error Handling
 

@@ -83,6 +83,15 @@ def is_hotfix_to_staging(pr: dict) -> bool:
     return True
 
 
+def is_hotfix_to_release(pr: dict) -> bool:
+    """Check if PR is a hotfix to release (not a promotion)."""
+    if pr.get("base", {}).get("ref") != "release":
+        return False
+    if is_promotion(pr):
+        return False
+    return True
+
+
 # -----------------------------------------------------------------------------
 # Data Fetching Functions
 # -----------------------------------------------------------------------------
@@ -375,19 +384,71 @@ def get_release_trend(owner: str, repo: str, count: int = 4) -> list[dict]:
         next_train_date = None
         if i > 0:
             next_train_date = parse_datetime(trains[i - 1]["merged_at"])
+
+        # Staging hotfixes (during QA)
         staging_prs = fetch_prs_by_base(
             owner, repo, "staging", current_date, next_train_date
         )
-        hotfixes = [pr for pr in staging_prs if is_hotfix_to_staging(pr)]
+        staging_hf = [pr for pr in staging_prs if is_hotfix_to_staging(pr)]
 
+        # Release hotfixes (to prod)
+        release_prs = fetch_prs_by_base(
+            owner, repo, "release", current_date, next_train_date
+        )
+        release_hf = [pr for pr in release_prs if is_hotfix_to_release(pr)]
+
+        has_hotfixes = len(staging_hf) > 0 or len(release_hf) > 0
         trend.append({
             "date": current_date.strftime("%m/%d"),
             "pr_count": len(prs),
-            "hotfix_count": len(hotfixes),
-            "outcome": "hotfix" if hotfixes else "clean",
+            "staging_hf": len(staging_hf),
+            "release_hf": len(release_hf),
+            "outcome": "hotfix" if has_hotfixes else "clean",
         })
 
     return trend
+
+
+def summarize_trend(trend: list[dict]) -> str:
+    """Generate prose summary of release trend."""
+    if not trend:
+        return ""
+
+    # Count consecutive hotfix releases from most recent
+    consecutive = 0
+    for t in trend:
+        if t["outcome"] == "hotfix":
+            consecutive += 1
+        else:
+            break
+
+    total = sum(t["staging_hf"] + t["release_hf"] for t in trend)
+
+    if consecutive == len(trend):
+        return (
+            f"{consecutive} consecutive releases with hotfixes "
+            f"({total} total over {len(trend)} weeks)"
+        )
+    elif consecutive > 0:
+        return (
+            f"Last {consecutive} release(s) had hotfixes "
+            f"({total} total over {len(trend)} weeks)"
+        )
+    return f"Last release was clean ({total} hotfixes over {len(trend)} weeks)"
+
+
+def generate_action_items(
+    staging_hotfixes: list[dict],
+    release_hotfixes: list[dict],
+) -> list[str]:
+    """Generate actionable follow-ups."""
+    items = []
+    for hf in staging_hotfixes + release_hotfixes:
+        if not hf.get("backmerged"):
+            items.append(
+                f"@{hf['user']['login']} — backmerge #{hf['number']} to develop"
+            )
+    return items
 
 
 def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
@@ -415,6 +476,7 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     else:
         since_date = staging_date - timedelta(days=7)
 
+    # Feature PRs (what shipped)
     feature_prs = fetch_prs_by_base(
         owner, repo, "develop", since_date, staging_date
     )
@@ -434,17 +496,27 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
         author = pr["user"]["login"]
         contributor_counts[author] = contributor_counts.get(author, 0) + 1
 
+    # Staging hotfixes (during QA)
     staging_prs = fetch_prs_by_base(owner, repo, "staging", staging_date)
-    hotfixes = [pr for pr in staging_prs if is_hotfix_to_staging(pr)]
+    staging_hotfixes = [pr for pr in staging_prs if is_hotfix_to_staging(pr)]
 
+    # Release hotfixes (to prod)
+    release_prs = fetch_prs_by_base(owner, repo, "release", staging_date)
+    release_hotfixes = [pr for pr in release_prs if is_hotfix_to_release(pr)]
+
+    # Check backmerge status for all hotfixes
     backmerges = get_backmerges_since(owner, repo, staging_date)
-    for hf in hotfixes:
+    for hf in staging_hotfixes:
+        hf["backmerged"] = has_backmerge_after(hf, backmerges)
+    for hf in release_hotfixes:
         hf["backmerged"] = has_backmerge_after(hf, backmerges)
 
-    outcome = "hotfix" if hotfixes else "clean"
+    has_hotfixes = len(staging_hotfixes) > 0 or len(release_hotfixes) > 0
 
     trend = get_release_trend(owner, repo, count=4)
+    action_items = generate_action_items(staging_hotfixes, release_hotfixes)
 
+    # --- Output ---
     prev_date_str = since_date.strftime("%b %d")
     curr_date_str = staging_date.strftime("%b %d")
     print(f"📦 *Release Retro: {prev_date_str} → {curr_date_str}*")
@@ -463,15 +535,22 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print("━" * 40)
     print()
 
-    if outcome == "clean":
+    # Outcome section
+    if not has_hotfixes:
         print("🚦 *Outcome: ✅ Clean Release*")
     else:
         print("🚦 *Outcome: ⚠️ Hotfixes Required*")
+        print()
+        if staging_hotfixes:
+            print(f"  {len(staging_hotfixes)} hotfix(es) to staging (during QA)")
+        if release_hotfixes:
+            print(f"  {len(release_hotfixes)} hotfix(es) to release (prod)")
     print()
 
     print("━" * 40)
     print()
 
+    # What Shipped
     print("📊 *What Shipped*")
     print()
     pr_count = len(feature_prs)
@@ -494,33 +573,64 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print("━" * 40)
     print()
 
-    print("🚨 *Hotfixes During QA* (direct PRs to staging)")
+    # Staging Hotfixes
+    print(f"🚨 *Staging Hotfixes* ({len(staging_hotfixes)} PRs during QA)")
     print()
-    if hotfixes:
-        for hf in hotfixes:
+    if staging_hotfixes:
+        for hf in staging_hotfixes:
             title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
-            backmerged = hf["backmerged"]
-            status = "✅ backmerged" if backmerged else "❌ NEEDS BACKMERGE"
+            status = "✅ backmerged" if hf["backmerged"] else "❌ NEEDS BACKMERGE"
             print(f"#{hf['number']}  @{hf['user']['login']}  \"{title}\"  "
                   f"{status}")
     else:
-        print("None - clean release! 🎉")
+        print("None 🎉")
     print()
 
     print("━" * 40)
     print()
 
+    # Release Hotfixes
+    print(f"🔥 *Release Hotfixes* ({len(release_hotfixes)} PRs to prod)")
+    print()
+    if release_hotfixes:
+        for hf in release_hotfixes:
+            title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
+            status = "✅ backmerged" if hf["backmerged"] else "❌ NEEDS BACKMERGE"
+            print(f"#{hf['number']}  @{hf['user']['login']}  \"{title}\"  "
+                  f"{status}")
+    else:
+        print("None 🎉")
+    print()
+
+    print("━" * 40)
+    print()
+
+    # Trend
     print("📈 *Trend (Last 4 Releases)*")
     print()
     if trend:
-        print("| Release | PRs | Hotfixes | Outcome |")
-        print("|---------|-----|----------|---------|")
+        print("| Release | PRs | Staging HF | Release HF | Outcome |")
+        print("|---------|-----|------------|------------|---------|")
         for t in trend:
             outcome_icon = "✅" if t["outcome"] == "clean" else "⚠️"
             print(f"| {t['date']} | {t['pr_count']} | "
-                  f"{t['hotfix_count']} | {outcome_icon} |")
+                  f"{t['staging_hf']} | {t['release_hf']} | {outcome_icon} |")
+        print()
+        trend_summary = summarize_trend(trend)
+        if trend_summary:
+            print(trend_summary)
     else:
         print("Not enough release history for trend data.")
+    print()
+
+    # Action Items
+    if action_items:
+        print("━" * 40)
+        print()
+        print("🎯 *Action Items*")
+        print()
+        for item in action_items:
+            print(f"- {item}")
 
 
 # -----------------------------------------------------------------------------
