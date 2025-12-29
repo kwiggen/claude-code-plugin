@@ -12,6 +12,113 @@ import subprocess
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
+
+
+class UserDict(TypedDict):
+    """GitHub user object."""
+
+    login: str
+
+
+class _PRResponseRequired(TypedDict):
+    """Required fields in GitHub PR API response."""
+
+    number: int
+    title: str
+    user: UserDict
+    created_at: str
+
+
+class PRResponse(_PRResponseRequired, total=False):
+    """GitHub PR API response."""
+
+    merged_at: str | None
+    body: str | None
+
+
+class PRStatsResponse(TypedDict):
+    """PR stats with line counts."""
+
+    additions: int
+    deletions: int
+
+
+class _ReviewResponseRequired(TypedDict):
+    """Required fields in GitHub review API response."""
+
+    user: UserDict
+    state: str
+
+
+class ReviewResponse(_ReviewResponseRequired, total=False):
+    """GitHub review API response."""
+
+    submitted_at: str | None
+
+
+class CommentResponse(TypedDict):
+    """GitHub comment API response."""
+
+    user: UserDict
+
+
+class AuthorStats(TypedDict):
+    """Stats per author for leaderboard."""
+
+    count: int
+    additions: int
+    deletions: int
+
+
+class PRSizeData(TypedDict):
+    """PR data for size analysis."""
+
+    number: int
+    title: str
+    author: str
+    additions: int
+    deletions: int
+    total: int
+    merge_time: timedelta
+
+
+class RevertData(TypedDict):
+    """Data for reverts/hotfixes."""
+
+    number: int
+    title: str
+    author: str
+    merged_at: str
+    original_pr: str | None
+
+
+class RubberStampData(TypedDict):
+    """Data for rubber stamp detection."""
+
+    number: int
+    title: str
+    author: str
+    reviewer: str
+    lines: int
+    review_time: float
+
+
+class ReviewerStatsData(TypedDict):
+    """Reviewer stats for review depth."""
+
+    review_times: list[float]
+    comment_counts: list[int]
+
+
+class PRCycleData(TypedDict):
+    """Data for review cycles."""
+
+    number: int
+    title: str
+    author: str
+    cycles: int
+    final_reviewer: str | None
 
 
 def get_repo_info() -> tuple[str, str]:
@@ -32,7 +139,7 @@ def get_repo_info() -> tuple[str, str]:
     return data["owner"]["login"], data["name"]
 
 
-def fetch_merged_prs(owner: str, repo: str, since: datetime) -> list[dict]:
+def fetch_merged_prs(owner: str, repo: str, since: datetime) -> list[PRResponse]:
     """Fetch all merged PRs to develop branch since the given date.
 
     Args:
@@ -40,7 +147,7 @@ def fetch_merged_prs(owner: str, repo: str, since: datetime) -> list[dict]:
         repo: Repository name
         since: Only include PRs merged after this date
     """
-    prs: list[dict] = []
+    prs: list[PRResponse] = []
     page = 1
     per_page = 100
 
@@ -89,7 +196,7 @@ def fetch_merged_prs(owner: str, repo: str, since: datetime) -> list[dict]:
     return prs
 
 
-def get_pr_stats(owner: str, repo: str, pr_number: int) -> dict:
+def get_pr_stats(owner: str, repo: str, pr_number: int) -> PRStatsResponse:
     """Get additions/deletions for a PR."""
     result = subprocess.run(
         ["gh", "api", f"repos/{owner}/{repo}/pulls/{pr_number}"],
@@ -139,7 +246,7 @@ def parse_datetime(iso_date: str) -> datetime:
     return datetime.fromisoformat(iso_date.replace("Z", "+00:00"))
 
 
-def fetch_pr_reviews(owner: str, repo: str, pr_number: int) -> list[dict]:
+def fetch_pr_reviews(owner: str, repo: str, pr_number: int) -> list[ReviewResponse]:
     """Fetch reviews for a specific PR."""
     result = subprocess.run(
         ["gh", "api", f"repos/{owner}/{repo}/pulls/{pr_number}/reviews"],
@@ -148,10 +255,13 @@ def fetch_pr_reviews(owner: str, repo: str, pr_number: int) -> list[dict]:
     )
     if result.returncode != 0:
         return []
-    return json.loads(result.stdout)
+    data = json.loads(result.stdout)
+    if not isinstance(data, list):
+        return []
+    return data
 
 
-def fetch_pr_comments(owner: str, repo: str, pr_number: int) -> list[dict]:
+def fetch_pr_comments(owner: str, repo: str, pr_number: int) -> list[CommentResponse]:
     """Fetch review comments for a specific PR."""
     result = subprocess.run(
         ["gh", "api", f"repos/{owner}/{repo}/pulls/{pr_number}/comments"],
@@ -160,7 +270,10 @@ def fetch_pr_comments(owner: str, repo: str, pr_number: int) -> list[dict]:
     )
     if result.returncode != 0:
         return []
-    return json.loads(result.stdout)
+    data = json.loads(result.stdout)
+    if not isinstance(data, list):
+        return []
+    return data
 
 
 def cmd_prs_merged(
@@ -191,7 +304,8 @@ def cmd_prs_merged(
         pr_num = pr["number"]
         title = pr["title"][:50] + ("..." if len(pr["title"]) > 50 else "")
         author = pr["user"]["login"]
-        merged = format_date(pr["merged_at"])
+        merged_at = pr["merged_at"]
+        merged = format_date(merged_at) if merged_at else "-"
 
         if show_stats:
             stats = get_pr_stats(owner, repo, pr_num)
@@ -209,12 +323,12 @@ def cmd_leaderboard(owner: str, repo: str, since: datetime) -> None:
         print("No PRs merged in the specified time range.")
         return
 
-    author_stats: dict[str, dict] = {}
+    author_stats: dict[str, AuthorStats] = {}
 
     for pr in prs:
         author = pr["user"]["login"]
         if author not in author_stats:
-            author_stats[author] = {"count": 0, "additions": 0, "deletions": 0}
+            author_stats[author] = AuthorStats(count=0, additions=0, deletions=0)
 
         author_stats[author]["count"] += 1
         stats = get_pr_stats(owner, repo, pr["number"])
@@ -268,10 +382,12 @@ def cmd_activity(owner: str, repo: str, since: datetime) -> None:
         total_additions += stats["additions"]
         total_deletions += stats["deletions"]
 
-        merged_at = parse_datetime(pr["merged_at"])
-        day_name = day_names[merged_at.weekday()]
-        day_counts[day_name] += 1
-        hour_counts[merged_at.hour] += 1
+        merged_at_str = pr["merged_at"]
+        if merged_at_str:
+            merged_at = parse_datetime(merged_at_str)
+            day_name = day_names[merged_at.weekday()]
+            day_counts[day_name] += 1
+            hour_counts[merged_at.hour] += 1
 
     days = (datetime.now(timezone.utc) - since).days or 1
 
@@ -330,8 +446,11 @@ def cmd_time_to_merge(owner: str, repo: str, since: datetime) -> None:
     all_times: list[timedelta] = []
 
     for pr in prs:
+        merged_at = pr["merged_at"]
+        if not merged_at:
+            continue
         created = parse_datetime(pr["created_at"])
-        merged = parse_datetime(pr["merged_at"])
+        merged = parse_datetime(merged_at)
         merge_time = merged - created
         author = pr["user"]["login"]
         author_times[author].append(merge_time)
@@ -441,20 +560,23 @@ def cmd_pr_size(owner: str, repo: str, since: datetime) -> None:
         print("No PRs merged in the specified time range.")
         return
 
-    size_buckets: dict[str, list[dict]] = {
+    size_buckets: dict[str, list[PRSizeData]] = {
         "Small (<100)": [],
         "Medium (100-500)": [],
         "Large (500+)": [],
     }
 
     for pr in prs:
+        merged_at = pr["merged_at"]
+        if not merged_at:
+            continue
         stats = get_pr_stats(owner, repo, pr["number"])
         total_lines = stats["additions"] + stats["deletions"]
         created = parse_datetime(pr["created_at"])
-        merged = parse_datetime(pr["merged_at"])
+        merged = parse_datetime(merged_at)
         merge_time = merged - created
 
-        pr_data = {
+        pr_data: PRSizeData = {
             "number": pr["number"],
             "title": pr["title"],
             "author": pr["user"]["login"],
@@ -541,13 +663,12 @@ def cmd_first_review(owner: str, repo: str, since: datetime) -> None:
         author = pr["user"]["login"]
 
         # Find the earliest review
-        first_review_time = None
+        first_review_time: datetime | None = None
         for review in reviews:
-            if review.get("submitted_at"):
-                review_time = parse_datetime(review["submitted_at"])
-                no_first = first_review_time is None
-                is_earlier = no_first or review_time < first_review_time
-                if is_earlier:
+            submitted_at = review.get("submitted_at")
+            if submitted_at:
+                review_time = parse_datetime(submitted_at)
+                if first_review_time is None or review_time < first_review_time:
                     first_review_time = review_time
 
         if first_review_time:
@@ -689,28 +810,31 @@ def cmd_reverts(owner: str, repo: str, since: datetime) -> None:
     )
     revert_ref_pattern = re.compile(r"reverts?\s+#(\d+)", re.IGNORECASE)
 
-    reverts: list[dict] = []
-    hotfixes: list[dict] = []
+    reverts: list[RevertData] = []
+    hotfixes: list[RevertData] = []
 
     for pr in prs:
+        merged_at = pr["merged_at"]
+        if not merged_at:
+            continue
         title = pr.get("title", "")
         body = pr.get("body", "") or ""
 
         is_revert = bool(revert_pattern.search(title))
         is_hotfix = bool(hotfix_pattern.search(title))
 
-        original_pr = None
+        original_pr: str | None = None
         title_match = revert_ref_pattern.search(title)
         body_match = revert_ref_pattern.search(body)
         ref_match = title_match or body_match
         if ref_match:
             original_pr = ref_match.group(1)
 
-        pr_data = {
+        pr_data: RevertData = {
             "number": pr["number"],
             "title": pr["title"],
             "author": pr["user"]["login"],
-            "merged_at": pr["merged_at"],
+            "merged_at": merged_at,
             "original_pr": original_pr,
         }
 
@@ -775,10 +899,10 @@ def cmd_review_depth(owner: str, repo: str, since: datetime) -> None:
         print("No PRs merged in the specified time range.")
         return
 
-    rubber_stamps: list[dict] = []
+    rubber_stamps: list[RubberStampData] = []
     prs_with_reviews = 0
-    reviewer_stats: dict[str, dict] = defaultdict(
-        lambda: {"review_times": [], "comment_counts": []}
+    reviewer_stats: dict[str, ReviewerStatsData] = defaultdict(
+        lambda: ReviewerStatsData(review_times=[], comment_counts=[])
     )
 
     for pr in prs:
@@ -799,10 +923,11 @@ def cmd_review_depth(owner: str, repo: str, since: datetime) -> None:
             if reviewer == author:
                 continue
 
-            if not review.get("submitted_at"):
+            submitted_at = review.get("submitted_at")
+            if not submitted_at:
                 continue
 
-            review_time = parse_datetime(review["submitted_at"])
+            review_time = parse_datetime(submitted_at)
             time_to_review = review_time - created
             review_minutes = time_to_review.total_seconds() / 60
 
@@ -820,16 +945,15 @@ def cmd_review_depth(owner: str, repo: str, since: datetime) -> None:
             no_comments = reviewer_comments == 0
 
             if is_approval and is_quick and (is_large or no_comments):
-                rubber_stamps.append(
-                    {
-                        "number": pr_number,
-                        "title": pr["title"],
-                        "author": author,
-                        "reviewer": reviewer,
-                        "lines": total_lines,
-                        "review_time": review_minutes,
-                    }
-                )
+                stamp: RubberStampData = {
+                    "number": pr_number,
+                    "title": pr["title"],
+                    "author": author,
+                    "reviewer": reviewer,
+                    "lines": total_lines,
+                    "review_time": review_minutes,
+                }
+                rubber_stamps.append(stamp)
 
     total_reviewed = prs_with_reviews
     if total_reviewed == 0:
@@ -902,7 +1026,7 @@ def cmd_review_cycles(owner: str, repo: str, since: datetime) -> None:
         return
 
     cycle_counts: dict[int, int] = defaultdict(int)
-    pr_cycles: list[dict] = []
+    pr_cycles: list[PRCycleData] = []
 
     for pr in prs:
         pr_number = pr["number"]
@@ -915,7 +1039,7 @@ def cmd_review_cycles(owner: str, repo: str, since: datetime) -> None:
 
         sorted_reviews = sorted(
             [r for r in reviews if r.get("submitted_at")],
-            key=lambda x: x["submitted_at"],
+            key=lambda x: x["submitted_at"],  # type: ignore[arg-type,return-value]
         )
 
         cycles = 1
@@ -933,15 +1057,14 @@ def cmd_review_cycles(owner: str, repo: str, since: datetime) -> None:
                 last_approver = reviewer
 
         cycle_counts[cycles] += 1
-        pr_cycles.append(
-            {
-                "number": pr_number,
-                "title": pr["title"],
-                "author": author,
-                "cycles": cycles,
-                "final_reviewer": last_approver,
-            }
-        )
+        cycle_data: PRCycleData = {
+            "number": pr_number,
+            "title": pr["title"],
+            "author": author,
+            "cycles": cycles,
+            "final_reviewer": last_approver,
+        }
+        pr_cycles.append(cycle_data)
 
     total_prs = len(prs)
     if total_prs == 0:
