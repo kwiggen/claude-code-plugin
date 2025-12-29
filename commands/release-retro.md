@@ -44,3 +44,7 @@ python {baseDir}/skills/release-reports/scripts/release_reports.py --action retr
 - If no release train found: inform user to run after develop → staging is merged
 - If promotion pending: show partial report
 - If `gh` not authenticated: suggest running `gh auth login`
+
+## Output Instructions
+
+**IMPORTANT**: Display the script output VERBATIM to the user. Do NOT summarize, paraphrase, or reformat the output. The report contains markdown tables and formatting that should be shown exactly as produced. Simply run the command and show the complete raw output.
