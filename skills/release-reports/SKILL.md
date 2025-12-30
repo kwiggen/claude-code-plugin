@@ -50,6 +50,37 @@ Shows:
 - Risk flags: large PRs (500+ lines), quick approvals
 - Hotfixes from previous cycle that need backmerge
 - Monday QA focus areas
+- Release notes data for AI generation
+
+#### Release Notes Generation
+
+The preview report outputs structured PR data in `<release-notes-data>` tags. When you see this data:
+
+1. Generate polished, user-facing release notes
+2. Rewrite each PR title as a clear one-line summary focusing on user impact
+3. Group items into these categories (skip empty ones):
+   - **What's New** - New features and capabilities
+   - **Bug Fixes** - Problems that were resolved
+   - **Improvements** - Enhancements to existing functionality
+4. Do NOT include PR links (this is for external sharing)
+5. Use professional, concise language
+
+Example output:
+```
+## Release Notes
+
+### What's New
+- Users can now export reports in PDF format
+- Added dark mode support across all pages
+
+### Bug Fixes
+- Fixed crash when loading large datasets
+- Resolved timezone display issues in reports
+
+### Improvements
+- Improved search performance by 40%
+- Streamlined onboarding flow
+```
 
 ### Retro Report
 
