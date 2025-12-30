@@ -499,6 +499,119 @@ def find_quick_approvals(
 
 
 # -----------------------------------------------------------------------------
+# Release Notes Generation
+# -----------------------------------------------------------------------------
+
+
+def classify_pr_type(pr: ReleasePR) -> str:
+    """Classify PR by type based on title patterns.
+
+    Returns one of: 'feature', 'fix', 'improvement', 'docs', 'chore', 'other'
+    """
+    title = pr.get("title", "").lower()
+
+    # Check for conventional commit prefixes first
+    if title.startswith(("feat:", "feat(")):
+        return "feature"
+    if title.startswith(("fix:", "fix(")):
+        return "fix"
+    if title.startswith(("refactor:", "refactor(", "perf:", "perf(", "improve:")):
+        return "improvement"
+    if title.startswith(("docs:", "docs(")):
+        return "docs"
+    if title.startswith(("chore:", "chore(", "ci:", "ci(", "build:", "build(")):
+        return "chore"
+
+    # Check for keyword patterns
+    feature_keywords = ["add ", "implement", "new ", "introduce", "create "]
+    fix_keywords = ["fix ", "resolve", "correct", "patch", "bug"]
+    improvement_keywords = ["update ", "improve", "optimize", "enhance", "refactor"]
+    docs_keywords = ["documentation", "readme", "doc "]
+    chore_keywords = ["bump", "upgrade", "dependency", "deps"]
+
+    for kw in feature_keywords:
+        if kw in title:
+            return "feature"
+    for kw in fix_keywords:
+        if kw in title:
+            return "fix"
+    for kw in improvement_keywords:
+        if kw in title:
+            return "improvement"
+    for kw in docs_keywords:
+        if kw in title:
+            return "docs"
+    for kw in chore_keywords:
+        if kw in title:
+            return "chore"
+
+    return "other"
+
+
+def output_release_notes_data(prs: list[ReleasePR]) -> None:
+    """Output structured PR data for Claude to generate release notes."""
+    if not prs:
+        return
+
+    # Group PRs by type
+    grouped: dict[str, list[ReleasePR]] = {
+        "feature": [],
+        "fix": [],
+        "improvement": [],
+        "docs": [],
+        "chore": [],
+        "other": [],
+    }
+
+    for pr in prs:
+        pr_type = classify_pr_type(pr)
+        grouped[pr_type].append(pr)
+
+    print()
+    print("━" * 40)
+    print()
+    print("<release-notes-data>")
+
+    # Output each category
+    type_labels = {
+        "feature": "Features",
+        "fix": "Bug Fixes",
+        "improvement": "Improvements",
+        "docs": "Documentation",
+        "chore": "Chores",
+        "other": "Other",
+    }
+
+    for pr_type, label in type_labels.items():
+        type_prs = grouped[pr_type]
+        if not type_prs:
+            continue
+
+        print(f"## {label} ({len(type_prs)})")
+        for pr in type_prs:
+            print(f"- TITLE: {pr['title']}")
+            body = pr.get("body")
+            if body:
+                # Truncate body to first 500 chars
+                truncated = body[:500].replace("\n", " ").strip()
+                if len(body) > 500:
+                    truncated += "..."
+                print(f"  BODY: {truncated}")
+            print()
+
+    print("</release-notes-data>")
+    print()
+    print("<release-notes-instructions>")
+    print("Generate polished release notes from the above data. For each item:")
+    print("1. Write a clear, user-facing one-line summary (not the raw title)")
+    print("2. Focus on user impact, not implementation details")
+    print("3. Group by category (What's New, Bug Fixes, Improvements)")
+    print("4. No PR links - this is for external sharing")
+    print("5. Skip empty categories")
+    print("</release-notes-instructions>")
+
+
+# -----------------------------------------------------------------------------
 # Preview Report
 # -----------------------------------------------------------------------------
 
@@ -635,6 +748,9 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
             print(f"  - #{pr['number']}: {pr['title'][:40]}")
     else:
         print("- No high-risk items identified")
+
+    # Output structured data for release notes generation
+    output_release_notes_data(feature_prs)
 
 
 # -----------------------------------------------------------------------------
