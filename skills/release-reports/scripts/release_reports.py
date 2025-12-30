@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 from zoneinfo import ZoneInfo
 
 # Import shared helpers from gh_stats
@@ -27,11 +28,67 @@ from gh_stats import (  # noqa: E402
     fetch_pr_reviews,
     fetch_pr_comments,
     parse_datetime,
+    PRStatsResponse,
+    UserDict,
 )
 
 
 # Module-level flag to avoid repeated git fetches
 _remote_fetched = False
+
+
+# -----------------------------------------------------------------------------
+# TypedDicts for API Responses
+# -----------------------------------------------------------------------------
+
+
+class BranchRef(TypedDict):
+    """GitHub branch reference."""
+
+    ref: str
+
+
+class AreaStats(TypedDict):
+    """Stats for a codebase area (FE, BE, CT, other)."""
+
+    additions: int
+    deletions: int
+
+
+class TrendEntry(TypedDict):
+    """Entry in release trend data."""
+
+    date: str
+    pr_count: int
+    staging_hf: int
+    release_hf: int
+    outcome: str
+
+
+class _ReleasePRRequired(TypedDict):
+    """Required fields for release PR data."""
+
+    number: int
+    title: str
+    user: UserDict
+    created_at: str
+    merged_at: str
+
+
+class ReleasePR(_ReleasePRRequired, total=False):
+    """PR data used in release reports with branch refs."""
+
+    body: str | None
+    base: BranchRef
+    head: BranchRef
+    merge_commit_sha: str | None
+    stats: PRStatsResponse
+    area_stats: dict[str, AreaStats]
+    backmerged: bool
+    # Quick approval detection fields
+    review_time_min: float
+    is_large: bool
+    comment_count: int
 
 
 # -----------------------------------------------------------------------------
@@ -52,45 +109,53 @@ PROMOTION_PATTERNS = [
 ]
 
 
-def is_release_train(pr: dict) -> bool:
+def is_release_train(pr: ReleasePR) -> bool:
     """Check if PR is a release train (dated branch → staging)."""
-    if pr.get("base", {}).get("ref") != "staging":
+    base = pr.get("base")
+    if base is None or base.get("ref") != "staging":
         return False
-    head_ref = pr.get("head", {}).get("ref", "")
+    head = pr.get("head")
+    head_ref = head.get("ref", "") if head else ""
     return any(re.match(p, head_ref) for p in RELEASE_TRAIN_PATTERNS)
 
 
-def is_promotion(pr: dict) -> bool:
+def is_promotion(pr: ReleasePR) -> bool:
     """Check if PR is a promotion (dated branch → release)."""
-    if pr.get("base", {}).get("ref") != "release":
+    base = pr.get("base")
+    if base is None or base.get("ref") != "release":
         return False
-    head_ref = pr.get("head", {}).get("ref", "")
+    head = pr.get("head")
+    head_ref = head.get("ref", "") if head else ""
     return any(re.match(p, head_ref) for p in PROMOTION_PATTERNS)
 
 
-def is_backmerge(pr: dict) -> bool:
+def is_backmerge(pr: ReleasePR) -> bool:
     """Check if PR is a backmerge (staging → develop)."""
-    return (
-        pr.get("base", {}).get("ref") == "develop"
-        and pr.get("head", {}).get("ref") == "staging"
-    )
+    base = pr.get("base")
+    head = pr.get("head")
+    base_ref = base.get("ref", "") if base else ""
+    head_ref = head.get("ref", "") if head else ""
+    return base_ref == "develop" and head_ref == "staging"
 
 
-def is_hotfix_to_staging(pr: dict) -> bool:
+def is_hotfix_to_staging(pr: ReleasePR) -> bool:
     """Check if PR is a hotfix to staging (not a release train)."""
-    if pr.get("base", {}).get("ref") != "staging":
+    base = pr.get("base")
+    if base is None or base.get("ref") != "staging":
         return False
     if is_release_train(pr):
         return False
     # Exclude release→staging backmerges
-    if pr.get("head", {}).get("ref") == "release":
+    head = pr.get("head")
+    if head is not None and head.get("ref") == "release":
         return False
     return True
 
 
-def is_hotfix_to_release(pr: dict) -> bool:
+def is_hotfix_to_release(pr: ReleasePR) -> bool:
     """Check if PR is a hotfix to release (not a promotion)."""
-    if pr.get("base", {}).get("ref") != "release":
+    base = pr.get("base")
+    if base is None or base.get("ref") != "release":
         return False
     if is_promotion(pr):
         return False
@@ -108,9 +173,9 @@ def fetch_prs_by_base(
     base: str,
     since: datetime,
     until: datetime | None = None,
-) -> list[dict]:
+) -> list[ReleasePR]:
     """Fetch merged PRs to a specific base branch within a date range."""
-    prs: list[dict] = []
+    prs: list[ReleasePR] = []
     page = 1
     per_page = 100
 
@@ -159,7 +224,7 @@ def fetch_prs_by_base(
 
 def find_release_trains(
     owner: str, repo: str, limit: int = 5, days: int = 60
-) -> list[dict]:
+) -> list[ReleasePR]:
     """Find the most recent release train PRs (dated branch → staging)."""
     since = datetime.now(timezone.utc) - timedelta(days=days)
     staging_prs = fetch_prs_by_base(owner, repo, "staging", since)
@@ -169,7 +234,7 @@ def find_release_trains(
 
 def find_last_promotion(
     owner: str, repo: str, days: int = 30
-) -> dict | None:
+) -> ReleasePR | None:
     """Find the most recent promotion PR (staging → release)."""
     since = datetime.now(timezone.utc) - timedelta(days=days)
     release_prs = fetch_prs_by_base(owner, repo, "release", since)
@@ -179,7 +244,7 @@ def find_last_promotion(
 
 def get_backmerges_since(
     owner: str, repo: str, since: datetime
-) -> list[dict]:
+) -> list[ReleasePR]:
     """Get backmerge PRs (staging → develop) since a date."""
     develop_prs = fetch_prs_by_base(owner, repo, "develop", since)
     return [pr for pr in develop_prs if is_backmerge(pr)]
@@ -242,7 +307,7 @@ def is_commit_reachable_from_develop(commit_sha: str) -> bool:
         return False
 
 
-def get_backmerged_commits(hotfixes: list[dict]) -> set[str]:
+def get_backmerged_commits(hotfixes: list[ReleasePR]) -> set[str]:
     """Get set of merge commit SHAs that are reachable from origin/develop.
 
     More efficient than individual checks when processing many hotfixes,
@@ -270,8 +335,8 @@ def get_backmerged_commits(hotfixes: list[dict]) -> set[str]:
 
 
 def has_backmerge_after(
-    hotfix: dict,
-    backmerges: list[dict],
+    hotfix: ReleasePR,
+    backmerges: list[ReleasePR],
     reachable_commits: set[str] | None = None,
 ) -> bool:
     """Check if a hotfix has been backmerged to develop.
@@ -319,7 +384,8 @@ def has_backmerge_after(
             continue
 
         bm_title = bm.get("title", "").lower()
-        bm_body = bm.get("body", "").lower() if bm.get("body") else ""
+        body = bm.get("body")
+        bm_body = body.lower() if body else ""
 
         if (
             str(hotfix_number) in bm_title
@@ -331,7 +397,7 @@ def has_backmerge_after(
     return False
 
 
-def get_pr_area_stats(owner: str, repo: str, pr_number: int) -> dict[str, dict]:
+def get_pr_area_stats(owner: str, repo: str, pr_number: int) -> dict[str, AreaStats]:
     """Get lines added/removed per codebase area.
 
     Returns dict with keys 'FE', 'BE', 'CT', 'other', each containing
@@ -348,7 +414,7 @@ def get_pr_area_stats(owner: str, repo: str, pr_number: int) -> dict[str, dict]:
         return {}
 
     files = json.loads(result.stdout)
-    area_stats: dict[str, dict] = {
+    area_stats: dict[str, AreaStats] = {
         "FE": {"additions": 0, "deletions": 0},
         "BE": {"additions": 0, "deletions": 0},
         "CT": {"additions": 0, "deletions": 0},
@@ -380,11 +446,13 @@ def pr_link(owner: str, repo: str, pr_number: int) -> str:
     return f"https://github.com/{owner}/{repo}/pull/{pr_number}"
 
 
-def format_area_breakdown(area_stats: dict) -> str:
+def format_area_breakdown(area_stats: dict[str, AreaStats]) -> str:
     """Format area stats as compact string, only showing non-zero areas."""
     parts = []
     for area in ["FE", "BE", "CT", "other"]:
-        stats = area_stats.get(area, {})
+        stats = area_stats.get(area)
+        if stats is None:
+            continue
         add = stats.get("additions", 0)
         delete = stats.get("deletions", 0)
         if add > 0 or delete > 0:
@@ -393,8 +461,8 @@ def format_area_breakdown(area_stats: dict) -> str:
 
 
 def find_quick_approvals(
-    owner: str, repo: str, prs: list[dict]
-) -> list[dict]:
+    owner: str, repo: str, prs: list[ReleasePR]
+) -> list[ReleasePR]:
     """Find PRs with quick approvals (<5 min), large or no comments."""
     quick_approvals = []
 
@@ -412,20 +480,19 @@ def find_quick_approvals(
             if review.get("state") != "APPROVED":
                 continue
 
-            if not review.get("submitted_at"):
+            submitted_at = review.get("submitted_at")
+            if not submitted_at:
                 continue
 
-            submitted = parse_datetime(review["submitted_at"])
+            submitted = parse_datetime(submitted_at)
             review_time = (submitted - created).total_seconds() / 60
 
             if review_time < 5:
                 if is_large or len(comments) == 0:
-                    quick_approvals.append({
-                        **pr,
-                        "review_time_min": review_time,
-                        "is_large": is_large,
-                        "comment_count": len(comments),
-                    })
+                    pr["review_time_min"] = review_time
+                    pr["is_large"] = is_large
+                    pr["comment_count"] = len(comments)
+                    quick_approvals.append(pr)
                     break
 
     return quick_approvals
@@ -454,13 +521,15 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
     else:
         since_date = current_date - timedelta(days=7)
 
-    feature_prs = fetch_prs_by_base(
+    all_prs = fetch_prs_by_base(
         owner, repo, "develop", since_date, current_date
     )
-    feature_prs = [
-        pr for pr in feature_prs
-        if pr.get("head", {}).get("ref") not in ["staging", "release"]
-    ]
+    feature_prs: list[ReleasePR] = []
+    for pr in all_prs:
+        head = pr.get("head")
+        head_ref = head.get("ref", "") if head else ""
+        if head_ref not in ("staging", "release", ""):
+            feature_prs.append(pr)
 
     total_additions = 0
     total_deletions = 0
@@ -573,14 +642,14 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
 # -----------------------------------------------------------------------------
 
 
-def get_release_trend(owner: str, repo: str, count: int = 4) -> list[dict]:
+def get_release_trend(owner: str, repo: str, count: int = 4) -> list[TrendEntry]:
     """Get stats for last N releases."""
     trains = find_release_trains(owner, repo, limit=count + 1, days=90)
 
     if len(trains) < 2:
         return []
 
-    trend = []
+    trend: list[TrendEntry] = []
     for i in range(len(trains) - 1):
         current = trains[i]
         previous = trains[i + 1]
@@ -591,10 +660,12 @@ def get_release_trend(owner: str, repo: str, count: int = 4) -> list[dict]:
         prs = fetch_prs_by_base(
             owner, repo, "develop", previous_date, current_date
         )
-        prs = [
-            pr for pr in prs
-            if pr.get("head", {}).get("ref") not in ["staging", "release"]
-        ]
+        filtered_prs = []
+        for pr in prs:
+            head = pr.get("head")
+            head_ref = head.get("ref", "") if head else ""
+            if head_ref not in ("staging", "release", ""):
+                filtered_prs.append(pr)
 
         # Hotfix window: from current train until next train (or now)
         next_train_date = None
@@ -616,7 +687,7 @@ def get_release_trend(owner: str, repo: str, count: int = 4) -> list[dict]:
         has_hotfixes = len(staging_hf) > 0 or len(release_hf) > 0
         trend.append({
             "date": current_date.strftime("%m/%d"),
-            "pr_count": len(prs),
+            "pr_count": len(filtered_prs),
             "staging_hf": len(staging_hf),
             "release_hf": len(release_hf),
             "outcome": "hotfix" if has_hotfixes else "clean",
@@ -625,7 +696,7 @@ def get_release_trend(owner: str, repo: str, count: int = 4) -> list[dict]:
     return trend
 
 
-def summarize_trend(trend: list[dict]) -> str:
+def summarize_trend(trend: list[TrendEntry]) -> str:
     """Generate prose summary of release trend."""
     if not trend:
         return ""
@@ -654,8 +725,8 @@ def summarize_trend(trend: list[dict]) -> str:
 
 
 def generate_action_items(
-    staging_hotfixes: list[dict],
-    release_hotfixes: list[dict],
+    staging_hotfixes: list[ReleasePR],
+    release_hotfixes: list[ReleasePR],
 ) -> list[str]:
     """Generate actionable follow-ups."""
     items = []
@@ -693,13 +764,15 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
         since_date = staging_date - timedelta(days=7)
 
     # Feature PRs (what shipped)
-    feature_prs = fetch_prs_by_base(
+    all_prs = fetch_prs_by_base(
         owner, repo, "develop", since_date, staging_date
     )
-    feature_prs = [
-        pr for pr in feature_prs
-        if pr.get("head", {}).get("ref") not in ["staging", "release"]
-    ]
+    feature_prs: list[ReleasePR] = []
+    for pr in all_prs:
+        head = pr.get("head")
+        head_ref = head.get("ref", "") if head else ""
+        if head_ref not in ("staging", "release", ""):
+            feature_prs.append(pr)
 
     total_additions = 0
     total_deletions = 0

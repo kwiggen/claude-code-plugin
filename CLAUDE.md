@@ -56,8 +56,10 @@ Bump version in `.claude-plugin/plugin.json` when making changes.
 
 Always check for lint/type errors before saying you're done:
 
-1. **Python files**: Run `python -m py_compile <file>` and check IDE diagnostics
+1. **Python files**:
+   - Run `mypy --strict <file>` - must pass with no errors
+   - Run `python -m py_compile <file>` - syntax check
 2. **TypeScript files**: Run `tsc --noEmit` and check IDE diagnostics
-3. **Use `mcp__ide__getDiagnostics`** to check for red squiggles in the IDE
+3. **Use `mcp__ide__getDiagnostics`** to check for red squiggles in the IDE (includes Flake8 for Python)
 
 Fix all errors before marking a task complete.
