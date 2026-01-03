@@ -2,6 +2,34 @@
 
 A Claude Code plugin for automating GitHub workflows: code reviews, PR creation, team analytics, and release management.
 
+## Installation
+
+**1. Add the marketplace:**
+```
+/plugin marketplace add kwiggen/claude-code-plugin
+```
+
+**2. Install the plugin:**
+```
+/plugin install kw-plugin@claude-code-plugin
+```
+
+**3. (Optional) Enable auto-updates:**
+
+Run `/plugin`, go to Marketplaces tab, enable auto-update for `claude-code-plugin`
+
+### Updating
+
+```
+/plugin update kw-plugin@claude-code-plugin
+```
+### Requirements
+- Claude Code v2.0.12 or higher
+- GitHub CLI (`gh`) authenticated
+- Python 3.11+
+- Git repository with GitHub remote
+
+
 ## Commands
 
 ### Code Review & PRs
