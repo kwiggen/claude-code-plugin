@@ -1,0 +1,16 @@
+{
+  "name": "claude-code-plugin",
+  "owner": {
+    "name": "Kevin Wiggen"
+  },
+  "metadata": {
+    "description": "GitHub workflow automation for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "kw-plugin",
+      "source": ".",
+      "description": "Code reviews, PR creation, team analytics, and release management"
+    }
+  ]
+}
