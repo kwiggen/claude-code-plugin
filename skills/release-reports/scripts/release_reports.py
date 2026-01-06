@@ -460,6 +460,54 @@ def format_area_breakdown(area_stats: dict[str, AreaStats]) -> str:
     return ", ".join(parts) if parts else "—"
 
 
+def slack_pr_link(owner: str, repo: str, pr_number: int) -> str:
+    """Return Slack-formatted PR link: <url|#number>."""
+    url = f"https://github.com/{owner}/{repo}/pull/{pr_number}"
+    return f"<{url}|#{pr_number}>"
+
+
+def format_slack_area_breakdown(area_stats: dict[str, AreaStats]) -> str:
+    """Format area stats as Slack inline code spans."""
+    parts = []
+    for area in ["FE", "BE", "CT", "other"]:
+        stats = area_stats.get(area)
+        if stats is None:
+            continue
+        add = stats.get("additions", 0)
+        delete = stats.get("deletions", 0)
+        if add > 0 or delete > 0:
+            parts.append(f"`{area}:+{add}/-{delete}`")
+    return " ".join(parts) if parts else ""
+
+
+def format_pr_slack_block(pr: ReleasePR, owner: str, repo: str) -> str:
+    """Format a PR as a Slack block with link, stats, title, and areas."""
+    add = pr["stats"]["additions"]
+    delete = pr["stats"]["deletions"]
+    link = slack_pr_link(owner, repo, pr["number"])
+    title = pr["title"][:50] + ("..." if len(pr["title"]) > 50 else "")
+    areas = format_slack_area_breakdown(pr["area_stats"])
+    lines = [
+        f"*{link}* +{add}/-{delete} by @{pr['user']['login']}",
+        title,
+    ]
+    if areas:
+        lines.append(areas)
+    return "\n".join(lines)
+
+
+def format_hotfix_slack_block(
+    hf: ReleasePR, owner: str, repo: str, show_status: bool = True
+) -> str:
+    """Format a hotfix as a single Slack line."""
+    link = slack_pr_link(owner, repo, hf["number"])
+    title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
+    status = ""
+    if show_status:
+        status = " " + ("✅" if hf.get("backmerged", False) else "❌ BACKMERGE")
+    return f"*{link}* @{hf['user']['login']} - {title}{status}"
+
+
 def find_quick_approvals(
     owner: str, repo: str, prs: list[ReleasePR]
 ) -> list[ReleasePR]:
@@ -692,18 +740,9 @@ def cmd_preview(owner: str, repo: str, days: int = 30) -> None:
     # All PRs sorted by size
     print("📋 *All PRs* (sorted by lines changed)")
     print()
-    print("| PR | Lines | Author | Title | Areas |")
-    print("|-----|-------|--------|-------|-------|")
     for pr in sorted_prs:
-        add = pr["stats"]["additions"]
-        delete = pr["stats"]["deletions"]
-        title = pr["title"][:35] + ("..." if len(pr["title"]) > 35 else "")
-        title = title.replace("|", "\\|")
-        breakdown = format_area_breakdown(pr["area_stats"])
-        link = pr_link(owner, repo, pr["number"])
-        print(f"| [#{pr['number']}]({link}) | +{add}/-{delete} | "
-              f"@{pr['user']['login']} | {title} | {breakdown} |")
-    print()
+        print(format_pr_slack_block(pr, owner, repo))
+        print()
 
     print("━" * 40)
     print()
@@ -1000,18 +1039,9 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     # All PRs sorted by size
     print("📋 *All PRs* (sorted by lines changed)")
     print()
-    print("| PR | Lines | Author | Title | Areas |")
-    print("|-----|-------|--------|-------|-------|")
     for pr in sorted_prs:
-        add = pr["stats"]["additions"]
-        delete = pr["stats"]["deletions"]
-        title = pr["title"][:35] + ("..." if len(pr["title"]) > 35 else "")
-        title = title.replace("|", "\\|")
-        breakdown = format_area_breakdown(pr["area_stats"])
-        link = pr_link(owner, repo, pr["number"])
-        print(f"| [#{pr['number']}]({link}) | +{add}/-{delete} | "
-              f"@{pr['user']['login']} | {title} | {breakdown} |")
-    print()
+        print(format_pr_slack_block(pr, owner, repo))
+        print()
 
     print("━" * 40)
     print()
@@ -1020,15 +1050,8 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print(f"🚨 *Staging Hotfixes* ({len(staging_hotfixes)} PRs during QA)")
     print()
     if staging_hotfixes:
-        print("| PR | Author | Title | Status |")
-        print("|-----|--------|-------|--------|")
         for hf in staging_hotfixes:
-            title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
-            title = title.replace("|", "\\|")
-            status = "✅" if hf["backmerged"] else "❌ BACKMERGE"
-            link = pr_link(owner, repo, hf["number"])
-            print(f"| [#{hf['number']}]({link}) | @{hf['user']['login']} | "
-                  f"{title} | {status} |")
+            print(format_hotfix_slack_block(hf, owner, repo))
     else:
         print("None 🎉")
     print()
@@ -1040,15 +1063,8 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print(f"🔥 *Release Hotfixes* ({len(release_hotfixes)} PRs to prod)")
     print()
     if release_hotfixes:
-        print("| PR | Author | Title | Status |")
-        print("|-----|--------|-------|--------|")
         for hf in release_hotfixes:
-            title = hf["title"][:40] + ("..." if len(hf["title"]) > 40 else "")
-            title = title.replace("|", "\\|")
-            status = "✅" if hf["backmerged"] else "❌ BACKMERGE"
-            link = pr_link(owner, repo, hf["number"])
-            print(f"| [#{hf['number']}]({link}) | @{hf['user']['login']} | "
-                  f"{title} | {status} |")
+            print(format_hotfix_slack_block(hf, owner, repo))
     else:
         print("None 🎉")
     print()
@@ -1060,12 +1076,11 @@ def cmd_retro(owner: str, repo: str, days: int = 30) -> None:
     print("📈 *Trend (Last 4 Releases)*")
     print()
     if trend:
-        print("| Release | PRs | Staging HF | Release HF | Outcome |")
-        print("|---------|-----|------------|------------|---------|")
         for t in trend:
             outcome_icon = "✅" if t["outcome"] == "clean" else "⚠️"
-            print(f"| {t['date']} | {t['pr_count']} | "
-                  f"{t['staging_hf']} | {t['release_hf']} | {outcome_icon} |")
+            print(f"*{t['date']}* - {t['pr_count']} PRs, "
+                  f"{t['staging_hf']} staging HF, "
+                  f"{t['release_hf']} release HF {outcome_icon}")
         print()
         trend_summary = summarize_trend(trend)
         if trend_summary:

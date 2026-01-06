@@ -122,6 +122,8 @@ Generate the description following this structure:
 
 ---
 Generated with [Claude Code](https://claude.ai/code)
+
+@summon-the-kraken
 ```
 
 ## Examples
