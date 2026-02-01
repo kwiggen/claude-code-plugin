@@ -48,6 +48,37 @@ description: |
 ---
 ```
 
+## TypeScript Infrastructure
+
+The plugin uses both Python and TypeScript:
+
+- **Python** (`skills/*/scripts/*.py`): Data-intensive scripts (gh_stats.py, release_reports.py)
+- **TypeScript** (`src/`): Hooks, config, and future features (agents, HUD, MCP tools)
+
+### Build & Test
+
+```bash
+npm install          # Install TypeScript toolchain
+npm run build        # Compile src/ -> dist/
+npm run test         # Run vitest tests
+npm run lint         # ESLint (no any allowed)
+npm run typecheck    # tsc --noEmit
+npm run check        # All three: typecheck + lint + test
+```
+
+### Hook Scripts (`scripts/*.mjs`)
+
+Standalone Node.js scripts invoked by Claude Code via `hooks/hooks.json`.
+These use only Node.js builtins (no imports from dist/ or node_modules/).
+The TypeScript equivalents in `src/hooks/` provide the same logic in testable form.
+
+### Hook Contract
+
+```
+stdin  → JSON { sessionId, directory, prompt?, toolName? }
+stdout → JSON { continue: true/false, message?, hookSpecificOutput? }
+```
+
 ## Version Management
 
 Bump version in `.claude-plugin/plugin.json` when making changes.
