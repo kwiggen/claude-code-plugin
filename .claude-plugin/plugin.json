@@ -1,8 +1,9 @@
 {
     "name": "kw-plugin",
     "description": "Plugin to wrap my extensions to Claude Code",
-    "version": "0.6.2",
+    "version": "0.7.0",
     "author": {
         "name": "Kevin Wiggen"
-    }
+    },
+    "skills": "./skills/"
 }

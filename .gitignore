@@ -31,6 +31,9 @@ node_modules/
 dist/
 build/
 
+# Plugin runtime state (future: analytics, session state)
+.omc/
+
 # Python
 __pycache__/
 *.py[cod]
