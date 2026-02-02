@@ -76,13 +76,33 @@ export interface CommandInfo {
 }
 
 /**
- * Plugin configuration — will grow as we add features.
- * Future phases: agent config, magic keywords, model routing, etc.
+ * Plugin configuration.
+ *
+ * OMC Pattern: Every property is optional. Defaults are defined in config/loader.ts.
+ * The config is built by merging: defaults → user config → project config → env vars.
+ * Each layer only needs to specify what it wants to override.
+ *
+ * This interface will grow as we add features (agents, magic keywords, routing, etc.)
+ * but the merge strategy stays the same.
  */
 export interface PluginConfig {
-  version?: string;
+  /** Feature toggles */
   features?: {
-    /** Enable session start context injection (default: true) */
+    /** Inject plugin context at session start (default: true) */
     sessionStartContext?: boolean;
+    // Future: magicKeywords, continuationEnforcement, parallelExecution, etc.
   };
+
+  /** Permission controls */
+  permissions?: {
+    /** Max concurrent background tasks (default: 5) */
+    maxBackgroundTasks?: number;
+    // Future: allowBash, allowEdit, allowWrite, etc.
+  };
+
+  // Future phases will add:
+  // agents?: { ... }        — model overrides per agent
+  // magicKeywords?: { ... } — custom keyword triggers
+  // routing?: { ... }       — smart model routing rules
+  // mcpServers?: { ... }    — external MCP server config
 }

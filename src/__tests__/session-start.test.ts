@@ -179,4 +179,37 @@ describe('buildSessionStartContext', () => {
     const betaIndex = context.indexOf('/beta');
     expect(alphaIndex).toBeLessThan(betaIndex);
   });
+
+  it('should skip context injection when feature is disabled', () => {
+    writeFileSync(
+      join(tempDir, '.claude-plugin', 'plugin.json'),
+      JSON.stringify({ name: 'kw-plugin', version: '0.7.0' })
+    );
+    writeFileSync(
+      join(tempDir, 'commands', 'test.md'),
+      `---\ndescription: "Test"\n---`
+    );
+
+    const output = buildSessionStartContext(tempDir, {
+      features: { sessionStartContext: false },
+    });
+
+    // Should still continue, but no context injected
+    expect(output.continue).toBe(true);
+    expect(output.hookSpecificOutput).toBeUndefined();
+  });
+
+  it('should inject context when feature is explicitly enabled', () => {
+    writeFileSync(
+      join(tempDir, '.claude-plugin', 'plugin.json'),
+      JSON.stringify({ name: 'kw-plugin', version: '0.7.0' })
+    );
+
+    const output = buildSessionStartContext(tempDir, {
+      features: { sessionStartContext: true },
+    });
+
+    expect(output.continue).toBe(true);
+    expect(output.hookSpecificOutput).toBeDefined();
+  });
 });

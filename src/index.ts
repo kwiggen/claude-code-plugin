@@ -3,9 +3,17 @@
  *
  * Code reviews, PR creation, team analytics, and release management.
  * TypeScript infrastructure for hooks, config, and future features.
- *
- * Phase 1: Hooks system with SessionStart hook
  */
+
+// Config
+export {
+  loadConfig,
+  loadJsoncFile,
+  loadEnvConfig,
+  getConfigPaths,
+  deepMerge,
+  DEFAULT_CONFIG,
+} from './config/index.js';
 
 // Hooks
 export {

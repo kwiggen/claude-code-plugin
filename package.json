@@ -29,5 +29,8 @@
   },
   "author": "Kevin Wiggen",
   "license": "MIT",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
 }

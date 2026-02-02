@@ -10,7 +10,8 @@
 
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import type { CommandInfo, SessionStartOutput } from '../shared/types.js';
+import type { CommandInfo, PluginConfig, SessionStartOutput } from '../shared/types.js';
+import { loadConfig } from '../config/index.js';
 
 export interface SessionStartResult {
   pluginName: string;
@@ -80,10 +81,21 @@ export function discoverCommands(commandsDir: string): CommandInfo[] {
  * then formats a context message that Claude will see at the start
  * of every session. The hookSpecificOutput.additionalContext field
  * is how Claude Code injects text into the model's context window.
+ *
+ * If config.features.sessionStartContext is false, returns a bare
+ * { continue: true } with no context injection.
  */
 export function buildSessionStartContext(
-  pluginRoot: string
+  pluginRoot: string,
+  config?: PluginConfig
 ): SessionStartOutput {
+  // Load config if not provided (so the .mjs script doesn't need to)
+  const resolvedConfig = config ?? loadConfig(pluginRoot);
+
+  // Respect the feature toggle — if disabled, skip context injection
+  if (resolvedConfig.features?.sessionStartContext === false) {
+    return { continue: true };
+  }
   // Read plugin metadata
   let version = 'unknown';
   let pluginName = 'kw-plugin';
