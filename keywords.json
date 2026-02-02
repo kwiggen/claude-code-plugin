@@ -22,6 +22,24 @@
     "instruction": "The user wants to see team GitHub activity.\nYou MUST invoke the kw-plugin:team-stats skill using the Skill tool."
   },
   {
+    "name": "use-opus",
+    "triggers": ["use opus", "opus mode", "with opus"],
+    "priority": 5,
+    "instruction": "MODEL PREFERENCE: Use claude-opus-4-5-20251101 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"opus\".\nThis is the most capable and expensive model — use it for complex reasoning, architecture decisions, and thorough analysis."
+  },
+  {
+    "name": "use-sonnet",
+    "triggers": ["use sonnet", "sonnet mode", "with sonnet"],
+    "priority": 5,
+    "instruction": "MODEL PREFERENCE: Use claude-sonnet-4-20250514 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"sonnet\".\nThis is the balanced model — good reasoning at moderate cost."
+  },
+  {
+    "name": "use-haiku",
+    "triggers": ["use haiku", "haiku mode", "with haiku", "cheap mode", "budget mode"],
+    "priority": 5,
+    "instruction": "MODEL PREFERENCE: Use claude-haiku-4-5-20251001 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"haiku\".\nThis is the fastest and cheapest model — use it to minimize cost. Accept reduced reasoning quality."
+  },
+  {
     "name": "thorough",
     "triggers": ["thorough", "deep review", "detailed review", "security review"],
     "priority": 10,
