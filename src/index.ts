@@ -43,6 +43,21 @@ export {
   renderCost,
 } from './hud/index.js';
 
+// State
+export {
+  getStateDir,
+  getStatePath,
+  ensureStateDir,
+  readState,
+  writeState,
+  updateState,
+  appendState,
+  readAppendLog,
+  stateExists,
+  clearState,
+  StateManager,
+} from './state/index.js';
+
 // Types
 export type {
   PluginConfig,
@@ -53,4 +68,7 @@ export type {
   StatuslineInput,
   CommandInfo,
   MagicKeyword,
+  StateLocation,
+  StateReadResult,
+  StateWriteResult,
 } from './shared/types.js';

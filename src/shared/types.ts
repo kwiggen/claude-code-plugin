@@ -138,6 +138,33 @@ export interface PluginConfig {
 }
 
 // ---------------------------------------------------------------------------
+// State Management Types
+// ---------------------------------------------------------------------------
+
+/** Where state files are stored. */
+export type StateLocation = 'local' | 'global';
+
+/** Result of reading a state file. */
+export interface StateReadResult<T> {
+  /** Whether the file existed */
+  exists: boolean;
+  /** Parsed data (undefined if not found) */
+  data?: T;
+  /** Path where the file was found */
+  foundAt?: string;
+}
+
+/** Result of writing a state file. */
+export interface StateWriteResult {
+  /** Whether the write succeeded */
+  success: boolean;
+  /** Path the file was written to */
+  path: string;
+  /** Error message if write failed */
+  error?: string;
+}
+
+// ---------------------------------------------------------------------------
 // HUD / Statusline Types
 // ---------------------------------------------------------------------------
 
