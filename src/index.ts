@@ -23,11 +23,24 @@ export {
 } from './hooks/index.js';
 export type { SessionStartResult } from './hooks/index.js';
 
+// Features
+export {
+  loadKeywords,
+  loadKeywordsFromFile,
+  sanitizePrompt,
+  detectKeywords,
+  applyKeywordOverrides,
+  buildKeywordOutput,
+  processKeywords,
+} from './features/index.js';
+
 // Types
 export type {
   PluginConfig,
   HookInput,
   HookOutput,
   SessionStartOutput,
+  UserPromptSubmitOutput,
   CommandInfo,
+  MagicKeyword,
 } from './shared/types.js';

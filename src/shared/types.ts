@@ -76,33 +76,63 @@ export interface CommandInfo {
 }
 
 /**
+ * UserPromptSubmit hook output — injects context before Claude sees the prompt.
+ */
+export interface UserPromptSubmitOutput {
+  continue: boolean;
+  hookSpecificOutput?: {
+    hookEventName: 'UserPromptSubmit';
+    /** Text appended to the conversation context (Claude sees this + the original prompt) */
+    additionalContext: string;
+  };
+}
+
+/**
+ * A magic keyword definition.
+ * Each keyword has trigger patterns and an instruction to inject when detected.
+ */
+export interface MagicKeyword {
+  /** Unique identifier */
+  name: string;
+  /** Regex patterns that trigger this keyword (tested against sanitized prompt) */
+  triggers: string[];
+  /** Priority (lower = higher priority). Used when multiple keywords match. */
+  priority: number;
+  /** Instruction text injected into additionalContext when triggered */
+  instruction: string;
+  /** Optional: skill to invoke (e.g. "kw-plugin:review-code") */
+  skill?: string;
+  /** Optional: skill arguments */
+  skillArgs?: string;
+}
+
+/**
  * Plugin configuration.
  *
  * OMC Pattern: Every property is optional. Defaults are defined in config/loader.ts.
  * The config is built by merging: defaults → user config → project config → env vars.
  * Each layer only needs to specify what it wants to override.
- *
- * This interface will grow as we add features (agents, magic keywords, routing, etc.)
- * but the merge strategy stays the same.
  */
 export interface PluginConfig {
   /** Feature toggles */
   features?: {
     /** Inject plugin context at session start (default: true) */
     sessionStartContext?: boolean;
-    // Future: magicKeywords, continuationEnforcement, parallelExecution, etc.
+    /** Enable magic keyword detection in prompts (default: true) */
+    magicKeywords?: boolean;
   };
 
   /** Permission controls */
   permissions?: {
     /** Max concurrent background tasks (default: 5) */
     maxBackgroundTasks?: number;
-    // Future: allowBash, allowEdit, allowWrite, etc.
   };
+
+  /** Custom keyword trigger overrides. Keys are keyword names, values are trigger arrays. */
+  magicKeywords?: Record<string, string[]>;
 
   // Future phases will add:
   // agents?: { ... }        — model overrides per agent
-  // magicKeywords?: { ... } — custom keyword triggers
   // routing?: { ... }       — smart model routing rules
   // mcpServers?: { ... }    — external MCP server config
 }

@@ -32,6 +32,7 @@ import type { PluginConfig } from '../shared/types.js';
 export const DEFAULT_CONFIG: PluginConfig = {
   features: {
     sessionStartContext: true,
+    magicKeywords: true,
   },
   permissions: {
     maxBackgroundTasks: 5,

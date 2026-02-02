@@ -1,0 +1,36 @@
+[
+  {
+    "name": "review",
+    "triggers": ["review", "code review", "cr", "review my code", "check my code"],
+    "priority": 1,
+    "skill": "kw-plugin:review-code",
+    "skillArgs": "1",
+    "instruction": "The user wants a code review of their uncommitted changes.\nYou MUST invoke the kw-plugin:review-code skill using the Skill tool.\nPass argument \"1\" for uncommitted changes unless the user specifies otherwise."
+  },
+  {
+    "name": "pr",
+    "triggers": ["create pr", "open pr", "push pr", "make pr", "write pr"],
+    "priority": 2,
+    "skill": "kw-plugin:create-pr",
+    "instruction": "The user wants to create a pull request.\nYou MUST invoke the kw-plugin:create-pr skill using the Skill tool."
+  },
+  {
+    "name": "stats",
+    "triggers": ["team stats", "team activity", "who merged", "pr stats", "github stats"],
+    "priority": 3,
+    "skill": "kw-plugin:team-stats",
+    "instruction": "The user wants to see team GitHub activity.\nYou MUST invoke the kw-plugin:team-stats skill using the Skill tool."
+  },
+  {
+    "name": "thorough",
+    "triggers": ["thorough", "deep review", "detailed review", "security review"],
+    "priority": 10,
+    "instruction": "The user wants an exceptionally thorough analysis.\nTake extra time. Check every edge case. Consider security implications.\nDo NOT rush. Quality over speed. If reviewing code, check:\n- Every error path and edge case\n- Security: injection, auth, data exposure\n- Performance: N+1 queries, unnecessary allocations\n- Missing tests for new/changed behavior"
+  },
+  {
+    "name": "ship",
+    "triggers": ["ship it", "ship", "lgtm", "lets go", "let's go"],
+    "priority": 10,
+    "instruction": "The user wants to move fast and get this done.\nBe concise. Skip lengthy explanations. Focus on action.\nMake decisions instead of asking questions when the answer is obvious.\nIf something needs to be done, just do it."
+  }
+]
