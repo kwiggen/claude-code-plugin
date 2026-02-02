@@ -34,6 +34,15 @@ export {
   processKeywords,
 } from './features/index.js';
 
+// HUD
+export {
+  render,
+  renderModel,
+  renderContextBar,
+  renderTokens,
+  renderCost,
+} from './hud/index.js';
+
 // Types
 export type {
   PluginConfig,
@@ -41,6 +50,7 @@ export type {
   HookOutput,
   SessionStartOutput,
   UserPromptSubmitOutput,
+  StatuslineInput,
   CommandInfo,
   MagicKeyword,
 } from './shared/types.js';

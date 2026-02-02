@@ -136,3 +136,33 @@ export interface PluginConfig {
   // routing?: { ... }       — smart model routing rules
   // mcpServers?: { ... }    — external MCP server config
 }
+
+// ---------------------------------------------------------------------------
+// HUD / Statusline Types
+// ---------------------------------------------------------------------------
+
+/**
+ * JSON that Claude Code pipes to the statusline command via stdin.
+ * This is the raw data we work with to render the statusbar.
+ */
+export interface StatuslineInput {
+  /** Path to the session transcript (JSONL file) */
+  transcript_path?: string;
+  /** Current working directory */
+  cwd?: string;
+  /** Model information */
+  model?: {
+    id?: string;
+    display_name?: string;
+  };
+  /** Context window usage */
+  context_window?: {
+    context_window_size?: number;
+    used_percentage?: number;
+    current_usage?: {
+      input_tokens?: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+  };
+}
