@@ -97,15 +97,15 @@ class ReleasePR(_ReleasePRRequired, total=False):
 
 # Release train branch patterns (→ staging)
 RELEASE_TRAIN_PATTERNS = [
-    r"^staging-\d{2}-\d{2}-\d{2}$",   # staging-12-21-25
-    r"^release-\d{2}-\d{2}-\d{2}$",   # release-12-14-25
+    r"^staging-\d{1,2}-\d{1,2}-\d{2,4}$",  # staging-12-21-25 or staging-2-2-26
+    r"^release-\d{1,2}-\d{1,2}-\d{2,4}$",  # release-12-14-25 or release-2-3-26
     r"^release-to-staging$",
 ]
 
 # Promotion branch patterns (→ release)
 PROMOTION_PATTERNS = [
-    r"^release-\d{2}-\d{2}-\d{2}$",   # release-12-22-25
-    r"^staging$",                       # direct staging→release (legacy)
+    r"^release-\d{1,2}-\d{1,2}-\d{2,4}$",  # release-12-22-25 or release-2-3-26
+    r"^staging$",                           # direct staging→release (legacy)
 ]
 
 
