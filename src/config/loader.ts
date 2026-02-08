@@ -33,6 +33,8 @@ export const DEFAULT_CONFIG: PluginConfig = {
   features: {
     sessionStartContext: true,
     magicKeywords: true,
+    notepad: true,
+    boulderState: true,
   },
   permissions: {
     maxBackgroundTasks: 5,
@@ -179,6 +181,24 @@ export function loadEnvConfig(): Partial<PluginConfig> {
     config.features = {
       ...config.features,
       sessionStartContext: sessionContext === 'true',
+    };
+  }
+
+  // Notepad toggle
+  const notepad = process.env.KW_PLUGIN_NOTEPAD;
+  if (notepad !== undefined) {
+    config.features = {
+      ...config.features,
+      notepad: notepad === 'true',
+    };
+  }
+
+  // Boulder state toggle
+  const boulderState = process.env.KW_PLUGIN_BOULDER_STATE;
+  if (boulderState !== undefined) {
+    config.features = {
+      ...config.features,
+      boulderState: boulderState === 'true',
     };
   }
 
