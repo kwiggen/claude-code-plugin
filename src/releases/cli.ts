@@ -7,7 +7,7 @@ import { getRepoInfo } from '../github/index.js';
 import { cmdPreview } from './preview.js';
 import { cmdRetro } from './retro.js';
 
-function parseArgs(argv: string[]): { action: string; days: number } {
+export function parseArgs(argv: string[]): { action: string; days: number } {
   let action = '';
   let days = 30;
 
@@ -43,4 +43,7 @@ function main(): void {
   }
 }
 
-main();
+/* istanbul ignore next -- CLI entrypoint guard */
+if (process.argv[1]?.endsWith('cli.js')) {
+  main();
+}

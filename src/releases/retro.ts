@@ -11,6 +11,7 @@ import {
   filterFeaturePRs,
   getStagingHotfixes,
   getBackmergesSince,
+  sortBySize,
 } from './data.js';
 import { isHotfixToRelease, isHotfixToStaging } from './classify.js';
 import { getBackmergedCommits, hasBackmergeAfter } from './git-utils.js';
@@ -157,11 +158,7 @@ export function cmdRetro(owner: string, repo: string, days = 30): void {
     contributorCounts[author] = (contributorCounts[author] ?? 0) + 1;
   }
 
-  const sortedPRs = [...featurePRs].sort((a, b) => {
-    const aTotal = (a.stats?.additions ?? 0) + (a.stats?.deletions ?? 0);
-    const bTotal = (b.stats?.additions ?? 0) + (b.stats?.deletions ?? 0);
-    return bTotal - aTotal;
-  });
+  const sortedPRs = sortBySize(featurePRs);
 
   // Staging hotfixes (during QA)
   const stagingHotfixes = getStagingHotfixes(owner, repo, stagingDate);

@@ -3,15 +3,16 @@
  */
 
 import { fetchMergedPRs } from '../../github/index.js';
-import type { RevertData } from '../../github/index.js';
+import type { PRResponse, RevertData } from '../../github/index.js';
 import { formatDate, truncate } from '../utils.js';
 
 export function reverts(
   owner: string,
   repo: string,
-  since: Date
+  since: Date,
+  prefetchedPrs?: PRResponse[]
 ): void {
-  const prs = fetchMergedPRs(owner, repo, since);
+  const prs = prefetchedPrs ?? fetchMergedPRs(owner, repo, since);
 
   if (prs.length === 0) {
     console.log('No PRs merged in the specified time range.');

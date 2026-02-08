@@ -194,9 +194,12 @@ describe('getPRStats', () => {
     mockExecFileSync.mockImplementation(() => {
       throw new Error('API error');
     });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     const result = getPRStats('owner', 'repo', 42);
     expect(result).toEqual({ additions: 0, deletions: 0 });
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Warning: failed to fetch stats'));
+    stderrSpy.mockRestore();
   });
 
   it('should default missing fields to 0', () => {

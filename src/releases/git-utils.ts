@@ -36,7 +36,9 @@ export function isCommitReachableFromDevelop(commitSha: string): boolean {
 }
 
 export function getBackmergedCommits(hotfixes: ReleasePR[]): Set<string> {
-  ensureRemoteUpdated();
+  if (!ensureRemoteUpdated()) {
+    process.stderr.write('Warning: could not fetch origin/develop — backmerge detection may be stale\n');
+  }
   const reachable = new Set<string>();
   for (const hf of hotfixes) {
     const sha = hf.merge_commit_sha;

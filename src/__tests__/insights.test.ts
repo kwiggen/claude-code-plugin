@@ -137,7 +137,7 @@ describe('prsMerged action', () => {
     mockGetPRStats.mockReturnValue({ additions: 100, deletions: 50 });
 
     const { prsMerged } = await import('../insights/actions/prs-merged.js');
-    prsMerged('owner', 'repo', since, true);
+    prsMerged('owner', 'repo', since, undefined, true);
 
     const output = consoleSpy.mock.calls.map((c: string[]) => c[0]).join('\n');
     expect(output).toContain('## PRs Merged (1 total)');
@@ -149,7 +149,7 @@ describe('prsMerged action', () => {
     mockFetchMergedPRs.mockReturnValue([makePR()]);
 
     const { prsMerged } = await import('../insights/actions/prs-merged.js');
-    prsMerged('owner', 'repo', since, false);
+    prsMerged('owner', 'repo', since, undefined, false);
 
     const output = consoleSpy.mock.calls.map((c: string[]) => c[0]).join('\n');
     expect(output).toContain('@dev1');
@@ -497,5 +497,82 @@ describe('reviewDepth action', () => {
     const output = consoleSpy.mock.calls.map((c: string[]) => c[0]).join('\n');
     expect(output).toContain('## Review Depth Analysis');
     expect(output).toContain('Potential Rubber Stamps');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// insights/cli.ts — parseArgs
+// ---------------------------------------------------------------------------
+
+import { parseArgs } from '../insights/cli.js';
+
+describe('insights parseArgs', () => {
+  let exitSpy: ReturnType<typeof vi.spyOn>;
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    stderrSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    exitSpy.mockRestore();
+    stderrSpy.mockRestore();
+  });
+
+  it('should parse valid action', () => {
+    const args = parseArgs(['--action', 'leaderboard']);
+    expect(args.action).toBe('leaderboard');
+    expect(args.days).toBe(30);
+    expect(args.start).toBeNull();
+    expect(args.noStats).toBe(false);
+  });
+
+  it('should parse all action', () => {
+    const args = parseArgs(['--action', 'all']);
+    expect(args.action).toBe('all');
+  });
+
+  it('should exit on invalid action', () => {
+    parseArgs(['--action', 'nonexistent']);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should exit when no action provided', () => {
+    parseArgs([]);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should parse --days flag', () => {
+    const args = parseArgs(['--action', 'all', '--days', '7']);
+    expect(args.days).toBe(7);
+  });
+
+  it('should exit on invalid --days', () => {
+    parseArgs(['--action', 'all', '--days', '-5']);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should parse --start flag', () => {
+    const args = parseArgs(['--action', 'all', '--start', '2025-01-01']);
+    expect(args.start).toBe('2025-01-01');
+  });
+
+  it('should parse --no-stats flag', () => {
+    const args = parseArgs(['--action', 'prs-merged', '--no-stats']);
+    expect(args.noStats).toBe(true);
+  });
+
+  it('should parse combined flags', () => {
+    const args = parseArgs([
+      '--action', 'prs-merged',
+      '--days', '14',
+      '--start', '2025-02-01',
+      '--no-stats',
+    ]);
+    expect(args.action).toBe('prs-merged');
+    expect(args.days).toBe(14);
+    expect(args.start).toBe('2025-02-01');
+    expect(args.noStats).toBe(true);
   });
 });

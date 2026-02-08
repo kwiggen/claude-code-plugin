@@ -11,6 +11,7 @@ import {
   findQuickApprovals,
   getStagingHotfixes,
   getBackmergesSince,
+  sortBySize,
 } from './data.js';
 import { getBackmergedCommits, hasBackmergeAfter } from './git-utils.js';
 import {
@@ -18,15 +19,6 @@ import {
   formatPRSlackBlock,
   outputReleaseNotesData,
 } from './format.js';
-import type { ReleasePR } from './types.js';
-
-function sortBySize(prs: ReleasePR[]): ReleasePR[] {
-  return [...prs].sort((a, b) => {
-    const aTotal = (a.stats?.additions ?? 0) + (a.stats?.deletions ?? 0);
-    const bTotal = (b.stats?.additions ?? 0) + (b.stats?.deletions ?? 0);
-    return bTotal - aTotal;
-  });
-}
 
 export function cmdPreview(owner: string, repo: string, days = 30): void {
   const trains = findReleaseTrains(owner, repo, 2, days);
@@ -50,7 +42,7 @@ export function cmdPreview(owner: string, repo: string, days = 30): void {
   const allPRs = fetchPRsByBase(owner, repo, 'develop', sinceDate, currentDate);
   const featurePRs = filterFeaturePRs(allPRs);
 
-  const { totalAdditions, totalDeletions } = enrichPRs(owner, repo, featurePRs);
+  const { totalAdditions, totalDeletions } = enrichPRs(owner, repo, featurePRs, true);
   const contributors = new Set(featurePRs.map(pr => pr.user.login));
 
   const sortedPRs = sortBySize(featurePRs);

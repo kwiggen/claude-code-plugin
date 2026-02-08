@@ -5,6 +5,7 @@
 
 import {
   ghApi,
+  fetchMergedPRsByBase,
   getPRStats,
   fetchPRReviews,
   fetchPRComments,
@@ -19,7 +20,7 @@ import {
 
 /**
  * Fetch merged PRs to a specific base branch within a date range.
- * Sorts by updated desc for efficient pagination.
+ * Delegates to the shared fetchMergedPRsByBase in github/api.
  */
 export function fetchPRsByBase(
   owner: string,
@@ -28,43 +29,7 @@ export function fetchPRsByBase(
   since: Date,
   until?: Date
 ): ReleasePR[] {
-  const prs: ReleasePR[] = [];
-  let page = 1;
-  const perPage = 100;
-
-  while (true) {
-    const pagePRs = ghApi<ReleasePR[]>(
-      `repos/${owner}/${repo}/pulls`,
-      {
-        state: 'closed',
-        base,
-        sort: 'updated',
-        direction: 'desc',
-        per_page: String(perPage),
-        page: String(page),
-      }
-    );
-
-    if (!pagePRs || pagePRs.length === 0) break;
-
-    let anyInRange = false;
-    for (const pr of pagePRs) {
-      if (!pr.merged_at) continue;
-      const mergedAt = new Date(pr.merged_at);
-
-      if (until && mergedAt > until) continue;
-      if (mergedAt >= since) {
-        prs.push(pr);
-        anyInRange = true;
-      }
-    }
-
-    if (!anyInRange) break;
-    page++;
-    if (pagePRs.length < perPage) break;
-  }
-
-  return prs;
+  return fetchMergedPRsByBase<ReleasePR>(owner, repo, base, since, until);
 }
 
 export function findReleaseTrains(
@@ -132,7 +97,8 @@ export function getPRAreaStats(
     }
 
     return areaStats;
-  } catch {
+  } catch (err) {
+    process.stderr.write(`Warning: failed to fetch area stats for PR #${prNumber}: ${err instanceof Error ? err.message : String(err)}\n`);
     return {};
   }
 }
@@ -149,8 +115,8 @@ export function findQuickApprovals(
     const totalLines = stats.additions + stats.deletions;
     const isLarge = totalLines >= 500;
 
-    const reviews = fetchPRReviews(owner, repo, pr.number);
-    const comments = fetchPRComments(owner, repo, pr.number);
+    const reviews = pr.reviews ?? fetchPRReviews(owner, repo, pr.number);
+    const comments = pr.comments ?? fetchPRComments(owner, repo, pr.number);
     const created = new Date(pr.created_at).getTime();
 
     for (const review of reviews) {
@@ -173,11 +139,12 @@ export function findQuickApprovals(
   return quickApprovals;
 }
 
-/** Enrich PRs with stats and area breakdown. Logs progress to stderr. */
+/** Enrich PRs with stats and area breakdown. Optionally pre-fetches reviews/comments. */
 export function enrichPRs(
   owner: string,
   repo: string,
-  prs: ReleasePR[]
+  prs: ReleasePR[],
+  fetchReviews = false
 ): { totalAdditions: number; totalDeletions: number } {
   let totalAdditions = 0;
   let totalDeletions = 0;
@@ -191,6 +158,11 @@ export function enrichPRs(
     pr.areaStats = getPRAreaStats(owner, repo, pr.number);
     totalAdditions += stats.additions;
     totalDeletions += stats.deletions;
+
+    if (fetchReviews) {
+      pr.reviews = fetchPRReviews(owner, repo, pr.number);
+      pr.comments = fetchPRComments(owner, repo, pr.number);
+    }
   }
   process.stderr.write('\n');
 
@@ -202,6 +174,15 @@ export function filterFeaturePRs(prs: ReleasePR[]): ReleasePR[] {
   return prs.filter(pr => {
     const headRef = pr.head?.ref ?? '';
     return headRef !== 'staging' && headRef !== 'release' && headRef !== '';
+  });
+}
+
+/** Sort PRs by total lines changed (descending). */
+export function sortBySize(prs: ReleasePR[]): ReleasePR[] {
+  return [...prs].sort((a, b) => {
+    const aTotal = (a.stats?.additions ?? 0) + (a.stats?.deletions ?? 0);
+    const bTotal = (b.stats?.additions ?? 0) + (b.stats?.deletions ?? 0);
+    return bTotal - aTotal;
   });
 }
 

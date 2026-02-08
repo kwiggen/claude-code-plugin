@@ -4,7 +4,7 @@
  * Usage: node dist/insights/cli.js --action <ACTION> [OPTIONS]
  */
 
-import { getRepoInfo } from '../github/index.js';
+import { getRepoInfo, fetchMergedPRs } from '../github/index.js';
 import { printReportSeparator } from './utils.js';
 import { prsMerged } from './actions/prs-merged.js';
 import { leaderboard } from './actions/leaderboard.js';
@@ -35,14 +35,14 @@ const VALID_ACTIONS = [
 
 type Action = (typeof VALID_ACTIONS)[number];
 
-interface CliArgs {
+export interface CliArgs {
   action: Action;
   days: number;
   start: string | null;
   noStats: boolean;
 }
 
-function parseArgs(argv: string[]): CliArgs {
+export function parseArgs(argv: string[]): CliArgs {
   let action: Action | null = null;
   let days = 30;
   let start: string | null = null;
@@ -87,38 +87,41 @@ function runAll(
   since: Date,
   showStats: boolean
 ): void {
+  // Fetch PRs once and pass to all actions
+  const prs = fetchMergedPRs(owner, repo, since);
+
   printReportSeparator('PRs Merged Overview');
-  prsMerged(owner, repo, since, showStats);
+  prsMerged(owner, repo, since, prs, showStats);
 
   printReportSeparator('Contributor Leaderboard');
-  leaderboard(owner, repo, since);
+  leaderboard(owner, repo, since, prs);
 
   printReportSeparator('Activity Patterns');
-  activity(owner, repo, since);
+  activity(owner, repo, since, prs);
 
   printReportSeparator('Time to Merge');
-  timeToMerge(owner, repo, since);
+  timeToMerge(owner, repo, since, prs);
 
   printReportSeparator('PR Size Analysis');
-  prSize(owner, repo, since);
+  prSize(owner, repo, since, prs);
 
   printReportSeparator('Time to First Review');
-  firstReview(owner, repo, since);
+  firstReview(owner, repo, since, prs);
 
   printReportSeparator('Review Activity');
-  reviews(owner, repo, since);
+  reviews(owner, repo, since, prs);
 
   printReportSeparator('Review Balance');
-  reviewBalance(owner, repo, since);
+  reviewBalance(owner, repo, since, prs);
 
   printReportSeparator('Review Depth');
-  reviewDepth(owner, repo, since);
+  reviewDepth(owner, repo, since, prs);
 
   printReportSeparator('Review Cycles');
-  reviewCycles(owner, repo, since);
+  reviewCycles(owner, repo, since, prs);
 
   printReportSeparator('Reverts');
-  reverts(owner, repo, since);
+  reverts(owner, repo, since, prs);
 
   console.log('\n' + '='.repeat(60));
   console.log('  All Reports Complete');
@@ -142,7 +145,7 @@ function main(): void {
 
   const actionMap: Record<Action, () => void> = {
     'all': () => runAll(owner, repo, since, !args.noStats),
-    'prs-merged': () => prsMerged(owner, repo, since, !args.noStats),
+    'prs-merged': () => prsMerged(owner, repo, since, undefined, !args.noStats),
     'leaderboard': () => leaderboard(owner, repo, since),
     'activity': () => activity(owner, repo, since),
     'time-to-merge': () => timeToMerge(owner, repo, since),
@@ -158,4 +161,7 @@ function main(): void {
   actionMap[args.action]();
 }
 
-main();
+/* istanbul ignore next -- CLI entrypoint guard */
+if (process.argv[1]?.endsWith('cli.js')) {
+  main();
+}

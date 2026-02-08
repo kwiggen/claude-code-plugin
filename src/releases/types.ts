@@ -2,7 +2,7 @@
  * Types for release reports.
  */
 
-import type { UserDict, PRStatsResponse } from '../github/types.js';
+import type { UserDict, PRStatsResponse, ReviewResponse, CommentResponse } from '../github/types.js';
 
 export interface BranchRef {
   ref: string;
@@ -37,4 +37,6 @@ export interface ReleasePR {
   reviewTimeMin?: number;
   isLarge?: boolean;
   commentCount?: number;
+  reviews?: ReviewResponse[];
+  comments?: CommentResponse[];
 }

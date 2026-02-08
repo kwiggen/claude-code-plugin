@@ -26,6 +26,7 @@ export {
   enrichPRs,
   filterFeaturePRs,
   getStagingHotfixes,
+  sortBySize,
 } from './data.js';
 
 export {

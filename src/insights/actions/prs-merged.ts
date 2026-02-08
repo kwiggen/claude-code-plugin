@@ -3,15 +3,17 @@
  */
 
 import { fetchMergedPRs, getPRStats } from '../../github/index.js';
+import type { PRResponse } from '../../github/index.js';
 import { formatDate } from '../utils.js';
 
 export function prsMerged(
   owner: string,
   repo: string,
   since: Date,
+  prefetchedPrs?: PRResponse[],
   showStats = true
 ): void {
-  const prs = fetchMergedPRs(owner, repo, since);
+  const prs = prefetchedPrs ?? fetchMergedPRs(owner, repo, since);
 
   if (prs.length === 0) {
     console.log('No PRs merged in the specified time range.');

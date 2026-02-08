@@ -60,9 +60,10 @@ export function printLeaderboard(authorStats: Map<string, AuthorStats>): void {
 export function leaderboard(
   owner: string,
   repo: string,
-  since: Date
+  since: Date,
+  prefetchedPrs?: PRResponse[]
 ): void {
-  const prs = fetchMergedPRs(owner, repo, since);
+  const prs = prefetchedPrs ?? fetchMergedPRs(owner, repo, since);
 
   if (prs.length === 0) {
     console.log('No PRs merged in the specified time range.');

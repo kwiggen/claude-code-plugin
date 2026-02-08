@@ -3,16 +3,17 @@
  */
 
 import { fetchMergedPRs, getPRStats } from '../../github/index.js';
-import type { PRStatsResponse } from '../../github/index.js';
+import type { PRResponse, PRStatsResponse } from '../../github/index.js';
 import { formatNumber, DAY_NAMES, WEEKDAY_NAMES } from '../utils.js';
 import { buildAuthorStats, printLeaderboard } from './leaderboard.js';
 
 export function activity(
   owner: string,
   repo: string,
-  since: Date
+  since: Date,
+  prefetchedPrs?: PRResponse[]
 ): void {
-  const prs = fetchMergedPRs(owner, repo, since);
+  const prs = prefetchedPrs ?? fetchMergedPRs(owner, repo, since);
 
   if (prs.length === 0) {
     console.log('No PRs merged in the specified time range.');

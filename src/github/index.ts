@@ -1,6 +1,8 @@
 export {
   getRepoInfo,
   ghApi,
+  ghApiPaginated,
+  fetchMergedPRsByBase,
   fetchMergedPRs,
   getPRStats,
   fetchPRReviews,

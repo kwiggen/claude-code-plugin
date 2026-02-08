@@ -46,7 +46,7 @@ export function ghApi<T>(endpoint: string, params?: Record<string, string>): T {
 /**
  * Fetch all items from a paginated gh api endpoint.
  */
-function ghApiPaginated<T>(endpoint: string, perPage = 100): T[] {
+export function ghApiPaginated<T>(endpoint: string, perPage = 100): T[] {
   const results: T[] = [];
   let page = 1;
 
@@ -66,25 +66,26 @@ function ghApiPaginated<T>(endpoint: string, perPage = 100): T[] {
 }
 
 /**
- * Fetch all merged PRs to develop branch since the given date.
- * Sorts by updated descending so recently-merged PRs appear first,
- * and stops pagination once all PRs on a page were updated before `since`.
+ * Canonical paginated fetch for merged PRs to a specific base branch.
+ * Sorts by updated desc and stops once no PRs in the date range are found.
  */
-export function fetchMergedPRs(
+export function fetchMergedPRsByBase<T extends { merged_at?: string | null }>(
   owner: string,
   repo: string,
-  since: Date
-): PRResponse[] {
-  const prs: PRResponse[] = [];
+  base: string,
+  since: Date,
+  until?: Date
+): T[] {
+  const prs: T[] = [];
   let page = 1;
   const perPage = 100;
 
   while (true) {
-    const pagePRs = ghApi<PRResponse[]>(
+    const pagePRs = ghApi<T[]>(
       `repos/${owner}/${repo}/pulls`,
       {
         state: 'closed',
-        base: 'develop',
+        base,
         sort: 'updated',
         direction: 'desc',
         per_page: String(perPage),
@@ -96,24 +97,34 @@ export function fetchMergedPRs(
 
     let anyInRange = false;
     for (const pr of pagePRs) {
-      if (pr.merged_at) {
-        const mergedAt = new Date(pr.merged_at);
-        if (mergedAt >= since) {
-          prs.push(pr);
-          anyInRange = true;
-        }
+      if (!pr.merged_at) continue;
+      const mergedAt = new Date(pr.merged_at);
+
+      if (until && mergedAt > until) continue;
+      if (mergedAt >= since) {
+        prs.push(pr);
+        anyInRange = true;
       }
     }
 
-    // If no PR on this page was in range and we sort by updated desc,
-    // all subsequent pages will be even older — safe to stop.
     if (!anyInRange) break;
-
     page++;
     if (pagePRs.length < perPage) break;
   }
 
   return prs;
+}
+
+/**
+ * Fetch all merged PRs to develop branch since the given date.
+ * Convenience wrapper around fetchMergedPRsByBase.
+ */
+export function fetchMergedPRs(
+  owner: string,
+  repo: string,
+  since: Date
+): PRResponse[] {
+  return fetchMergedPRsByBase<PRResponse>(owner, repo, 'develop', since);
 }
 
 /**
@@ -132,7 +143,8 @@ export function getPRStats(
       additions: data.additions ?? 0,
       deletions: data.deletions ?? 0,
     };
-  } catch {
+  } catch (err) {
+    process.stderr.write(`Warning: failed to fetch stats for PR #${prNumber}: ${err instanceof Error ? err.message : String(err)}\n`);
     return { additions: 0, deletions: 0 };
   }
 }

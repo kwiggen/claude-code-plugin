@@ -1,6 +1,6 @@
 {
   "name": "kw-plugin",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Claude Code plugin: code reviews, PR creation, team analytics, release management",
   "type": "module",
   "main": "dist/index.js",
@@ -25,7 +25,7 @@
     "vitest": "^4.0.17"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.11.0"
   },
   "author": "Kevin Wiggen",
   "license": "MIT",

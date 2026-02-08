@@ -3,15 +3,16 @@
  */
 
 import { fetchMergedPRs, fetchPRReviews } from '../../github/index.js';
-import type { PRCycleData } from '../../github/index.js';
+import type { PRCycleData, PRResponse } from '../../github/index.js';
 import { median, truncate } from '../utils.js';
 
 export function reviewCycles(
   owner: string,
   repo: string,
-  since: Date
+  since: Date,
+  prefetchedPrs?: PRResponse[]
 ): void {
-  const prs = fetchMergedPRs(owner, repo, since);
+  const prs = prefetchedPrs ?? fetchMergedPRs(owner, repo, since);
 
   if (prs.length === 0) {
     console.log('No PRs merged in the specified time range.');
