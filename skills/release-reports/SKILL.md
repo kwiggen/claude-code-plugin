@@ -20,7 +20,7 @@ Generate reports for weekly release cycles.
 ## Usage
 
 ```bash
-python {baseDir}/skills/release-reports/scripts/release_reports.py --action <ACTION> [OPTIONS]
+node {baseDir}/dist/releases/cli.js --action <ACTION> [OPTIONS]
 ```
 
 ### Options
@@ -32,10 +32,10 @@ python {baseDir}/skills/release-reports/scripts/release_reports.py --action <ACT
 
 ```bash
 # Sunday evening after release train is merged
-python {baseDir}/skills/release-reports/scripts/release_reports.py --action preview
+node {baseDir}/dist/releases/cli.js --action preview
 
 # Tuesday morning after prod is stable
-python {baseDir}/skills/release-reports/scripts/release_reports.py --action retro
+node {baseDir}/dist/releases/cli.js --action retro
 ```
 
 ## Report Details

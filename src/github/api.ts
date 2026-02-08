@@ -1,6 +1,5 @@
 /**
  * GitHub API wrapper using `gh` CLI.
- * Replaces Python subprocess calls with Node.js child_process.
  */
 
 import { execFileSync } from 'child_process';
@@ -33,7 +32,7 @@ export function getRepoInfo(): { owner: string; repo: string } {
 /**
  * Run a `gh api` call and return parsed JSON.
  */
-function ghApi<T>(endpoint: string, params?: Record<string, string>): T {
+export function ghApi<T>(endpoint: string, params?: Record<string, string>): T {
   const args = ['api', endpoint, '-X', 'GET'];
   if (params) {
     for (const [key, value] of Object.entries(params)) {

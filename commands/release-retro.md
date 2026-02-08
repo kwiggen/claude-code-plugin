@@ -1,7 +1,7 @@
 ---
 description: "Show what happened - run Tuesday after prod stabilizes"
 argument-hint: "[days]"
-allowed-tools: ["Bash(python:*)", "Bash(gh:*)"]
+allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
 ---
 
 # /release-retro
@@ -26,7 +26,7 @@ Arguments: {{#if $ARGUMENTS}}$ARGUMENTS{{else}}(none){{/if}}
 ## Execution
 
 ```bash
-python {baseDir}/skills/release-reports/scripts/release_reports.py --action retro --days <DAYS>
+node {baseDir}/dist/releases/cli.js --action retro --days <DAYS>
 ```
 
 ## What It Shows

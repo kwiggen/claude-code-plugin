@@ -1,6 +1,5 @@
 /**
  * TypeScript types for GitHub API responses.
- * Mirrors the Python TypedDicts from gh_stats.py.
  */
 
 export interface UserDict {

@@ -50,12 +50,10 @@ description: |
 
 ## TypeScript Infrastructure
 
-The plugin primarily uses TypeScript, with one remaining Python script being migrated:
-
-- **TypeScript** (`src/`): Hooks, config, GitHub insights CLI, HUD, and future features
+- **TypeScript** (`src/`): Hooks, config, GitHub insights CLI, HUD, release reports
   - `src/github/` — Shared GitHub API wrapper (gh CLI integration, types)
   - `src/insights/` — Team analytics (11 report actions, CLI entrypoint at `dist/insights/cli.js`)
-- **Python** (`skills/release-reports/scripts/release_reports.py`): Release reports (Phase 2 migration pending)
+  - `src/releases/` — Release report data, classification, formatting, and actions
 
 ### Build & Test
 
@@ -89,10 +87,7 @@ Bump version in `.claude-plugin/plugin.json` when making changes.
 
 Always check for lint/type errors before saying you're done:
 
-1. **Python files**:
-   - Run `mypy --strict <file>` - must pass with no errors
-   - Run `python -m py_compile <file>` - syntax check
-2. **TypeScript files**: Run `tsc --noEmit` and check IDE diagnostics
-3. **Use `mcp__ide__getDiagnostics`** to check for red squiggles in the IDE (includes Flake8 for Python)
+1. **TypeScript files**: Run `tsc --noEmit` and check IDE diagnostics
+2. **Use `mcp__ide__getDiagnostics`** to check for red squiggles in the IDE
 
 Fix all errors before marking a task complete.

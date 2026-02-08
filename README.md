@@ -26,7 +26,6 @@ Run `/plugin`, go to Marketplaces tab, enable auto-update for `claude-code-plugi
 ### Requirements
 - Claude Code v2.0.12 or higher
 - GitHub CLI (`gh`) authenticated
-- Python 3.11+
 - Git repository with GitHub remote
 
 
@@ -88,7 +87,6 @@ All team-stats commands accept an optional day range: `/team-stats leaderboard 1
 ## Requirements
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) authenticated
-- Python 3.11+
 - Git repository with GitHub remote
 
 ## Structure

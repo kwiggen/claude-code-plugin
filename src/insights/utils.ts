@@ -1,6 +1,5 @@
 /**
  * Shared utility functions for insights actions.
- * Replaces Python helpers: format_date, format_duration, print_report_separator, statistics.
  */
 
 /**

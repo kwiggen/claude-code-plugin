@@ -1,7 +1,7 @@
 ---
 description: "Show what's shipping - run Sunday after release train is merged"
 argument-hint: "[days]"
-allowed-tools: ["Bash(python:*)", "Bash(gh:*)"]
+allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
 ---
 
 # /release-preview
@@ -26,7 +26,7 @@ Arguments: {{#if $ARGUMENTS}}$ARGUMENTS{{else}}(none){{/if}}
 ## Execution
 
 ```bash
-python {baseDir}/skills/release-reports/scripts/release_reports.py --action preview --days <DAYS>
+node {baseDir}/dist/releases/cli.js --action preview --days <DAYS>
 ```
 
 ## What It Shows

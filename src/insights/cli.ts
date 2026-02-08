@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * CLI entrypoint for GitHub insights.
- * Replaces: python gh_stats.py --action <ACTION> [OPTIONS]
- * Usage:    node dist/insights/cli.js --action <ACTION> [OPTIONS]
+ * Usage: node dist/insights/cli.js --action <ACTION> [OPTIONS]
  */
 
 import { getRepoInfo } from '../github/index.js';
