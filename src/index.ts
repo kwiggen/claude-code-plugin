@@ -58,6 +58,46 @@ export {
   StateManager,
 } from './state/index.js';
 
+// Notepad
+export {
+  getNotepadPath,
+  initNotepad,
+  readNotepad,
+  getPriorityContext,
+  setPriorityContext,
+  addWorkingMemoryEntry,
+  getWorkingMemory,
+  addManualEntry,
+  getManualSection,
+  pruneOldEntries,
+  getNotepadStats,
+  formatNotepadContext,
+} from './notepad/index.js';
+export type {
+  NotepadData,
+  NotepadEntry,
+  NotepadStats,
+  SetPriorityResult,
+} from './notepad/index.js';
+
+// Boulder
+export {
+  readBoulderState,
+  writeBoulderState,
+  clearBoulderState,
+  hasBoulder,
+  getActivePlanPath,
+  appendSessionId,
+  createBoulderState,
+  getPlanProgress,
+  formatBoulderContext,
+} from './boulder/index.js';
+export type {
+  BoulderState,
+  PlanProgress,
+  PlanItem,
+} from './boulder/index.js';
+
 // Types
 export type {
   PluginConfig,

@@ -120,6 +120,10 @@ export interface PluginConfig {
     sessionStartContext?: boolean;
     /** Enable magic keyword detection in prompts (default: true) */
     magicKeywords?: boolean;
+    /** Enable notepad memory injection at session start (default: true) */
+    notepad?: boolean;
+    /** Enable boulder state injection at session start (default: true) */
+    boulderState?: boolean;
   };
 
   /** Permission controls */

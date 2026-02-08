@@ -31,8 +31,9 @@ node_modules/
 dist/
 build/
 
-# Plugin runtime state (future: analytics, session state)
+# Plugin runtime state (notepad, boulder, analytics, session state)
 .omc/
+.kw-plugin/
 
 # Python
 __pycache__/

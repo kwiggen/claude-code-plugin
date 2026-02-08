@@ -12,6 +12,8 @@ import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import type { CommandInfo, PluginConfig, SessionStartOutput } from '../shared/types.js';
 import { loadConfig } from '../config/index.js';
+import { readNotepad, pruneOldEntries, formatNotepadContext } from '../notepad/index.js';
+import { readBoulderState, getPlanProgress, formatBoulderContext } from '../boulder/index.js';
 
 export interface SessionStartResult {
   pluginName: string;
@@ -125,6 +127,36 @@ export function buildSessionStartContext(
     for (const cmd of commands) {
       const desc = cmd.description ? ` - ${cmd.description}` : '';
       lines.push(`  /${cmd.name}${desc}`);
+    }
+  }
+
+  // --- Notepad memory injection ---
+  if (resolvedConfig.features?.notepad !== false) {
+    try {
+      const notepadData = readNotepad(pluginRoot);
+      // Prune old entries, passing pre-read data to avoid a double file read
+      pruneOldEntries(7, pluginRoot, notepadData);
+      const notepadContext = formatNotepadContext(notepadData);
+      if (notepadContext) {
+        lines.push('');
+        lines.push(notepadContext);
+      }
+    } catch {
+      // Never block session start for notepad errors
+    }
+  }
+
+  // --- Boulder state injection ---
+  if (resolvedConfig.features?.boulderState !== false) {
+    try {
+      const boulder = readBoulderState(pluginRoot);
+      if (boulder) {
+        const progress = getPlanProgress(boulder.active_plan);
+        lines.push('');
+        lines.push(formatBoulderContext(boulder, progress));
+      }
+    } catch {
+      // Never block session start for boulder errors
     }
   }
 
