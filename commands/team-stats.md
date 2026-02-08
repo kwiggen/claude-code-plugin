@@ -1,7 +1,7 @@
 ---
 description: "Show team GitHub activity - PRs, reviews, merge times, bottlenecks, quality signals"
 argument-hint: "[action] [days]"
-allowed-tools: ["Bash(python:*)", "Bash(gh:*)"]
+allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
 ---
 
 # /team-stats
@@ -54,7 +54,7 @@ Parse `$ARGUMENTS` to determine action and time range:
 2. Run the github-insights skill script:
 
 ```bash
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action <ACTION> --days <DAYS>
+node {baseDir}/dist/insights/cli.js --action <ACTION> --days <DAYS>
 ```
 
 3. Display the output directly (it's already formatted as markdown)

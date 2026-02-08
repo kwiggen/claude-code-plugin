@@ -30,10 +30,10 @@ Analyze team GitHub activity for the current repository.
 
 ## Usage
 
-Run the script from the skill's scripts directory:
+Run the compiled TypeScript CLI from the dist directory:
 
 ```bash
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action <ACTION> [OPTIONS]
+node {baseDir}/dist/insights/cli.js --action <ACTION> [OPTIONS]
 ```
 
 ### Options
@@ -47,34 +47,34 @@ python {baseDir}/skills/github-insights/scripts/gh_stats.py --action <ACTION> [O
 
 ```bash
 # PRs merged in last 30 days
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action prs-merged
+node {baseDir}/dist/insights/cli.js --action prs-merged
 
 # Leaderboard for last week
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action leaderboard --days 7
+node {baseDir}/dist/insights/cli.js --action leaderboard --days 7
 
 # Time to merge analysis
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action time-to-merge --days 30
+node {baseDir}/dist/insights/cli.js --action time-to-merge --days 30
 
 # Review participation
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action reviews --days 30
+node {baseDir}/dist/insights/cli.js --action reviews --days 30
 
 # PR size analysis with bottleneck detection
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action pr-size --days 30
+node {baseDir}/dist/insights/cli.js --action pr-size --days 30
 
 # Time to first review
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action first-review --days 30
+node {baseDir}/dist/insights/cli.js --action first-review --days 30
 
 # Review balance (given vs received)
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-balance --days 30
+node {baseDir}/dist/insights/cli.js --action review-balance --days 30
 
 # Reverts and hotfixes tracking
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action reverts --days 30
+node {baseDir}/dist/insights/cli.js --action reverts --days 30
 
 # Rubber stamp detection
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-depth --days 30
+node {baseDir}/dist/insights/cli.js --action review-depth --days 30
 
 # Review cycles (rounds of feedback)
-python {baseDir}/skills/github-insights/scripts/gh_stats.py --action review-cycles --days 30
+node {baseDir}/dist/insights/cli.js --action review-cycles --days 30
 ```
 
 ## Interpreting User Requests
@@ -105,3 +105,4 @@ The script outputs markdown tables ready for display. No additional formatting n
 
 - Must be run from within a git repository
 - Requires `gh` CLI authenticated (`gh auth status`)
+- Requires `npm run build` to have been run (compiles TypeScript to dist/)

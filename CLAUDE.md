@@ -50,10 +50,12 @@ description: |
 
 ## TypeScript Infrastructure
 
-The plugin uses both Python and TypeScript:
+The plugin primarily uses TypeScript, with one remaining Python script being migrated:
 
-- **Python** (`skills/*/scripts/*.py`): Data-intensive scripts (gh_stats.py, release_reports.py)
-- **TypeScript** (`src/`): Hooks, config, and future features (agents, HUD, MCP tools)
+- **TypeScript** (`src/`): Hooks, config, GitHub insights CLI, HUD, and future features
+  - `src/github/` — Shared GitHub API wrapper (gh CLI integration, types)
+  - `src/insights/` — Team analytics (11 report actions, CLI entrypoint at `dist/insights/cli.js`)
+- **Python** (`skills/release-reports/scripts/release_reports.py`): Release reports (Phase 2 migration pending)
 
 ### Build & Test
 
