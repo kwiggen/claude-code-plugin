@@ -10,6 +10,11 @@ This is a Claude Code plugin that provides commands for code review, PR creation
 - `/review-code` - Code review (backed by `code-reviewer` skill)
 - `/create-pr` - PR creation (backed by `pr-writer` skill)
 - `/team-stats` - GitHub team activity (backed by `github-insights` skill)
+- `/create-feature` - Feature definition via discussion (backed by `feature-writer` skill)
+- `/create-issue` - GitHub issue creation (backed by `issue-creator` skill)
+- `/release-preview` - Release preview report (backed by `release-reports` skill)
+- `/release-retro` - Release retrospective (backed by `release-reports` skill)
+- `/validate` - Plan/architecture validation (backed by `assumption-challenger`, `antipattern-detector`, `validator` skills)
 
 ## Architecture
 
