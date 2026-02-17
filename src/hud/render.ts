@@ -11,6 +11,8 @@
  * Output uses non-breaking spaces (\u00A0) for terminal alignment stability.
  */
 
+import { openSync, readSync, closeSync, statSync } from 'fs';
+import { execFileSync } from 'child_process';
 import type { StatuslineInput } from '../shared/types.js';
 import { bold, dim, cyan, green, yellow, red, magenta } from './colors.js';
 
@@ -190,6 +192,166 @@ export function renderCost(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers (private)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read only the first line of a file without loading the whole thing.
+ * Transcript JSONL files can be very large — we only need line 1.
+ */
+function readFirstLine(filePath: string): string | null {
+  let fd: number | undefined;
+  try {
+    fd = openSync(filePath, 'r');
+    const buf = Buffer.alloc(4096);
+    const bytesRead = readSync(fd, buf, 0, 4096, 0);
+    const content = buf.toString('utf-8', 0, bytesRead);
+    const newlineIdx = content.indexOf('\n');
+    return newlineIdx >= 0 ? content.substring(0, newlineIdx) : content;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
+
+function formatElapsed(ms: number): string {
+  if (ms < 0) return '<1m';
+  const totalMinutes = Math.floor(ms / 60_000);
+  if (totalMinutes < 1) return '<1m';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  return `${hours}h ${minutes}m`;
+}
+
+function parseShortstat(output: string): { insertions: number; deletions: number } {
+  const insMatch = output.match(/(\d+) insertions?\(\+\)/);
+  const delMatch = output.match(/(\d+) deletions?\(-\)/);
+  return {
+    insertions: insMatch ? parseInt(insMatch[1], 10) : 0,
+    deletions: delMatch ? parseInt(delMatch[1], 10) : 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Element: Session clock
+// ---------------------------------------------------------------------------
+
+/**
+ * Render elapsed session time from the transcript file.
+ * Reads the first JSONL line for its timestamp, falls back to file birthtime.
+ */
+export function renderSessionClock(
+  transcriptPath: string | undefined
+): string | null {
+  if (!transcriptPath) return null;
+
+  let startTime: number | undefined;
+
+  // Try to extract timestamp from first JSONL line
+  const firstLine = readFirstLine(transcriptPath);
+  if (firstLine) {
+    try {
+      const parsed = JSON.parse(firstLine) as Record<string, unknown>;
+      if (typeof parsed.timestamp === 'string') {
+        const ts = new Date(parsed.timestamp).getTime();
+        if (!isNaN(ts)) startTime = ts;
+      }
+    } catch {
+      // Fall through to birthtime fallback
+    }
+  }
+
+  // Fallback: use file creation time
+  if (startTime === undefined) {
+    try {
+      startTime = statSync(transcriptPath).birthtime.getTime();
+    } catch {
+      return null;
+    }
+  }
+
+  const elapsed = Date.now() - startTime;
+  return `${dim('t:')}${cyan(formatElapsed(elapsed))}`;
+}
+
+// ---------------------------------------------------------------------------
+// Element: Git branch + changes
+// ---------------------------------------------------------------------------
+
+/**
+ * Render current git branch and change counts.
+ * Shows branch name, and (+N,-N) for combined staged/unstaged changes.
+ */
+export function renderGitBranch(cwd: string | undefined): string | null {
+  if (!cwd) return null;
+
+  const execOpts = { cwd, encoding: 'utf-8' as const, timeout: 5000 };
+
+  let branch: string;
+  try {
+    branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], execOpts).trim();
+  } catch {
+    return null; // Not a git repo
+  }
+
+  let unstaged = { insertions: 0, deletions: 0 };
+  let staged = { insertions: 0, deletions: 0 };
+
+  try {
+    unstaged = parseShortstat(execFileSync('git', ['diff', '--shortstat'], execOpts));
+  } catch {
+    // No unstaged changes or git error
+  }
+
+  try {
+    staged = parseShortstat(execFileSync('git', ['diff', '--cached', '--shortstat'], execOpts));
+  } catch {
+    // No staged changes or git error
+  }
+
+  const totalIns = unstaged.insertions + staged.insertions;
+  const totalDel = unstaged.deletions + staged.deletions;
+
+  if (totalIns === 0 && totalDel === 0) {
+    return cyan(branch);
+  }
+
+  return `${cyan(branch)} ${dim('(')}${green(`+${totalIns}`)}${dim(',')}${red(`-${totalDel}`)}${dim(')')}`;
+}
+
+// ---------------------------------------------------------------------------
+// Element: Usable context percentage
+// ---------------------------------------------------------------------------
+
+/**
+ * Render how close the session is to the auto-compact threshold.
+ * Claude Code auto-compacts at ~80% of the context window.
+ */
+export function renderUsableContext(
+  contextWindowSize: number | undefined,
+  usedPercentage: number | undefined
+): string | null {
+  if (contextWindowSize === undefined || usedPercentage === undefined) return null;
+
+  const usableLimit = contextWindowSize * 0.8;
+  const currentTokens = contextWindowSize * (usedPercentage / 100);
+  const usablePct = Math.min(Math.round((currentTokens / usableLimit) * 100), 100);
+
+  let colorFn: (s: string) => string;
+  if (usablePct >= 90) {
+    colorFn = red;
+  } else if (usablePct >= 70) {
+    colorFn = yellow;
+  } else {
+    colorFn = green;
+  }
+
+  return `${dim('usable:')}${colorFn(`${usablePct}%`)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Main render function
 // ---------------------------------------------------------------------------
 
@@ -206,9 +368,24 @@ export function render(input: StatuslineInput): string {
   const model = renderModel(input.model?.id);
   if (model) elements.push(model);
 
+  // Session clock
+  const clock = renderSessionClock(input.transcript_path);
+  if (clock) elements.push(clock);
+
+  // Git branch + changes
+  const git = renderGitBranch(input.cwd);
+  if (git) elements.push(git);
+
   // Context bar
   const contextBar = renderContextBar(input.context_window?.used_percentage);
   if (contextBar) elements.push(contextBar);
+
+  // Usable context percentage
+  const usable = renderUsableContext(
+    input.context_window?.context_window_size,
+    input.context_window?.used_percentage
+  );
+  if (usable) elements.push(usable);
 
   // Token count
   const usage = input.context_window?.current_usage;

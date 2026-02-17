@@ -1,6 +1,6 @@
 {
   "name": "kw-plugin",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "Claude Code plugin: code reviews, PR creation, team analytics, release management",
   "type": "module",
   "main": "dist/index.js",

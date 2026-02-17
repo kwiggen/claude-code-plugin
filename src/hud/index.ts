@@ -11,5 +11,14 @@
  * configured in ~/.claude/settings.json.
  */
 
-export { render, renderModel, renderContextBar, renderTokens, renderCost } from './render.js';
+export {
+  render,
+  renderModel,
+  renderSessionClock,
+  renderGitBranch,
+  renderContextBar,
+  renderUsableContext,
+  renderTokens,
+  renderCost,
+} from './render.js';
 export { bold, dim, cyan, green, yellow, red, magenta, blue } from './colors.js';

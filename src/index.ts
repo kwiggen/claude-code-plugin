@@ -38,7 +38,10 @@ export {
 export {
   render,
   renderModel,
+  renderSessionClock,
+  renderGitBranch,
   renderContextBar,
+  renderUsableContext,
   renderTokens,
   renderCost,
 } from './hud/index.js';
