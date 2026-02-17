@@ -1,69 +1,264 @@
 [
   {
     "name": "review",
-    "triggers": ["review", "code review", "cr", "review my code", "check my code"],
+    "triggers": [
+      "review",
+      "code review",
+      "cr",
+      "review my code",
+      "check my code"
+    ],
     "priority": 1,
     "skill": "kw-plugin:review-code",
     "skillArgs": "1",
     "instruction": "The user wants a code review of their uncommitted changes.\nYou MUST invoke the kw-plugin:review-code skill using the Skill tool.\nPass argument \"1\" for uncommitted changes unless the user specifies otherwise."
   },
   {
+    "name": "swarm-review",
+    "triggers": [
+      "swarm review",
+      "team review",
+      "swarm code review"
+    ],
+    "priority": 1,
+    "excludes": [
+      "review",
+      "swarm"
+    ],
+    "instruction": "EXECUTION MODE: AGENT TEAMS (Full Collaboration)\nCreate an agent team to conduct a multi-specialist code review.\nSpawn three teammates:\n- Teammate 1 'Architect': System design, module boundaries, data flow, scalability, architectural debt\n- Teammate 2 'QA': Test coverage, test quality, edge cases, error handling, failure modes, observability\n- Teammate 3 'Reviewer': Code quality, readability, maintainability, duplication, naming, DX, documentation\n\nPHASE 1: Each teammate independently reviews the codebase and produces a report with: Strengths, Critical Issues, Risks, Top 5 Next Steps (with effort estimates).\nAll findings must cite specific files, functions, and patterns. No hand-waving.\n\nPHASE 2: Teammates message each other to challenge priorities, surface cross-cutting issues, and negotiate disagreements.\n\nPHASE 3: You (team lead) synthesize into: individual reports, consensus priorities, unresolved disagreements with each side's reasoning, a unified plan, and a 'If you only do 3 things' executive summary.\n\nDo NOT soften or blend disagreements. Preserve the tension."
+  },
+  {
+    "name": "dispatch-review",
+    "triggers": [
+      "dispatch review",
+      "parallel review",
+      "fan out review"
+    ],
+    "priority": 1,
+    "excludes": [
+      "review",
+      "dispatch"
+    ],
+    "instruction": "EXECUTION MODE: SUBAGENTS (Parallel Code Review)\nYou are the orchestrator. Launch three independent subagent reviews in parallel using the Task tool:\n\nSubagent 1 — Principal Architect: System design, module boundaries, data flow, scalability, architectural debt.\nSubagent 2 — QA & Testing Lead: Test coverage, test quality, edge cases, error handling, failure modes.\nSubagent 3 — Staff Code Reviewer: Code quality, readability, maintainability, duplication, naming, DX.\n\nEach subagent must reference specific files, functions, and patterns. No hand-waving.\nEach produces: Strengths, Critical Issues, Risks, Top 5 Next Steps (with effort estimates in hours).\n\nAfter all three report back, YOU synthesize: present each report, identify consensus, surface disagreements with reasoning from each specialist's expertise, produce a unified plan with disagreements flagged, and end with 'If you only do 3 things' executive summary.\n\nDo NOT do the reviews yourself. Delegate, wait, synthesize."
+  },
+  {
+    "name": "swarm-build",
+    "triggers": [
+      "swarm build",
+      "swarm implement",
+      "swarm create",
+      "swarm code",
+      "team build",
+      "team implement"
+    ],
+    "priority": 1,
+    "excludes": [
+      "swarm"
+    ],
+    "instruction": "EXECUTION MODE: AGENT TEAMS (Parallel Implementation)\nCreate an agent team to implement this feature/task.\nAnalyze the work first, then spawn teammates by SCOPE — each teammate owns different files/modules:\n\nExample splits (adapt to the actual task):\n- Backend logic (services, controllers, models)\n- Frontend/UI (components, state, views)\n- Tests & validation (unit tests, integration tests, e2e)\n\nRULES:\n- Each teammate owns DIFFERENT FILES. No two teammates edit the same file.\n- Teammates should message each other about shared interfaces, types, and contracts BEFORE coding.\n- If a teammate needs a type/interface another teammate is creating, they agree on the shape first via messages.\n- The team lead (you) should NOT write code — coordinate, resolve conflicts, and do a final integration check.\n- After all teammates complete, verify the pieces fit together. Run tests if possible."
+  },
+  {
+    "name": "swarm-fix",
+    "triggers": [
+      "swarm fix",
+      "swarm debug",
+      "swarm investigate",
+      "team fix",
+      "team debug"
+    ],
+    "priority": 1,
+    "excludes": [
+      "swarm"
+    ],
+    "instruction": "EXECUTION MODE: AGENT TEAMS (Parallel Debugging)\nCreate an agent team to investigate and fix this issue.\nSpawn teammates with COMPETING HYPOTHESES — each pursues a different theory:\n\nApproach:\n1. You (team lead) analyze the bug/issue first and form 2-3 hypotheses about the root cause\n2. Spawn one teammate per hypothesis to investigate independently\n3. Teammates should message each other when they find evidence that supports or eliminates a theory\n4. Once the root cause is confirmed, the teammate who found it implements the fix\n5. Another teammate writes/updates tests for the fix\n6. You verify the fix and synthesize the findings\n\nTeammates MUST share discoveries immediately via messages — don't let two teammates chase a dead end when one already has evidence."
+  },
+  {
+    "name": "swarm-refactor",
+    "triggers": [
+      "swarm refactor",
+      "swarm restructure",
+      "swarm migrate",
+      "team refactor"
+    ],
+    "priority": 1,
+    "excludes": [
+      "swarm"
+    ],
+    "instruction": "EXECUTION MODE: AGENT TEAMS (Parallel Refactoring)\nCreate an agent team to refactor/restructure this code.\n\nApproach:\n1. You (team lead) analyze the scope first and break it into independent tracks\n2. Spawn teammates where each owns a different module/layer/file set\n3. Before coding, teammates MUST agree on:\n   - Shared interfaces and type contracts\n   - Import paths that will change\n   - Any breaking changes that affect other teammates' work\n4. Each teammate refactors their scope independently\n5. After completion, you verify everything integrates and no imports are broken\n\nRULES:\n- No two teammates edit the same file\n- Teammates message each other when they change an export or interface\n- If a change in module A breaks module B, the teammate owning A messages the teammate owning B BEFORE making the change\n- Run tests after integration to catch contract mismatches"
+  },
+  {
+    "name": "dispatch-build",
+    "triggers": [
+      "dispatch build",
+      "dispatch implement",
+      "dispatch create",
+      "dispatch code",
+      "parallel build",
+      "parallel implement"
+    ],
+    "priority": 1,
+    "excludes": [
+      "dispatch"
+    ],
+    "instruction": "EXECUTION MODE: SUBAGENTS (Parallel Implementation)\nYou are the orchestrator. Break this task into independent pieces and delegate to subagents.\n\nApproach:\n1. Analyze the task and identify pieces that can be built independently\n2. Define the interfaces/contracts between pieces UP FRONT in your delegation prompts\n3. Launch subagents — each gets the shared interface spec plus their specific scope\n4. After all subagents complete, YOU integrate the pieces and verify they fit\n5. Fix any contract mismatches yourself\n\nEach subagent prompt MUST include:\n- Their specific scope (which files to create/modify)\n- The shared interfaces/types they must conform to\n- What NOT to touch (other subagents' files)\n\nDo NOT do the implementation yourself. Delegate, wait, integrate."
+  },
+  {
+    "name": "dispatch-fix",
+    "triggers": [
+      "dispatch fix",
+      "dispatch debug",
+      "dispatch investigate",
+      "parallel fix",
+      "parallel debug"
+    ],
+    "priority": 1,
+    "excludes": [
+      "dispatch"
+    ],
+    "instruction": "EXECUTION MODE: SUBAGENTS (Parallel Investigation)\nYou are the orchestrator. Investigate this issue using multiple subagents with competing hypotheses.\n\n1. Analyze the bug/issue and form 2-3 hypotheses about root cause\n2. Launch one subagent per hypothesis — each investigates independently\n3. Each subagent reports: evidence found, confidence level, proposed fix if root cause confirmed\n4. YOU evaluate the evidence, determine the actual root cause, and implement or delegate the fix\n\nSubagents cannot talk to each other. They may duplicate some investigation work — that's fine.\nThe value is parallel exploration of different theories."
+  },
+  {
     "name": "gemini-review",
-    "triggers": ["gemini review", "dual review", "gemini code review"],
+    "triggers": [
+      "gemini review",
+      "dual review",
+      "gemini code review"
+    ],
     "priority": 1,
     "skill": "kw-plugin:gemini-review",
     "skillArgs": "1",
-    "excludes": ["review"],
+    "excludes": [
+      "review"
+    ],
     "instruction": "The user wants a dual code review from both Claude and Gemini.\nYou MUST invoke the kw-plugin:gemini-review skill using the Skill tool.\nPass argument \"1\" for uncommitted changes unless the user specifies otherwise."
   },
   {
     "name": "ask-gemini",
-    "triggers": ["ask gemini", "gemini opinion", "what does gemini think"],
+    "triggers": [
+      "ask gemini",
+      "gemini opinion",
+      "what does gemini think"
+    ],
     "priority": 2,
     "skill": "kw-plugin:ask-gemini",
     "instruction": "The user wants Gemini's independent opinion on a topic, file, or question.\nYou MUST invoke the kw-plugin:ask-gemini skill using the Skill tool.\nPass the user's question or file reference as the argument."
   },
   {
     "name": "pr",
-    "triggers": ["create pr", "open pr", "push pr", "make pr", "write pr"],
+    "triggers": [
+      "create pr",
+      "open pr",
+      "push pr",
+      "make pr",
+      "write pr"
+    ],
     "priority": 2,
     "skill": "kw-plugin:create-pr",
     "instruction": "The user wants to create a pull request.\nYou MUST invoke the kw-plugin:create-pr skill using the Skill tool."
   },
   {
     "name": "stats",
-    "triggers": ["team stats", "team activity", "who merged", "pr stats", "github stats"],
+    "triggers": [
+      "team stats",
+      "team activity",
+      "who merged",
+      "pr stats",
+      "github stats"
+    ],
     "priority": 3,
     "skill": "kw-plugin:team-stats",
     "instruction": "The user wants to see team GitHub activity.\nYou MUST invoke the kw-plugin:team-stats skill using the Skill tool."
   },
   {
+    "name": "solo",
+    "triggers": [
+      "solo",
+      "single agent",
+      "one agent",
+      "solo mode",
+      "sequential"
+    ],
+    "priority": 4,
+    "instruction": "EXECUTION MODE: SINGLE AGENT (Sequential)\nDo NOT spawn subagents or agent teams. Do all work yourself in this session.\nIf the task has multiple perspectives or phases, work through them one at a time sequentially.\nThis is the most token-efficient approach. Use it."
+  },
+  {
+    "name": "dispatch",
+    "triggers": [
+      "dispatch",
+      "subagents",
+      "sub agents",
+      "parallel",
+      "fan out",
+      "fan-out"
+    ],
+    "priority": 4,
+    "instruction": "EXECUTION MODE: SUBAGENTS (Parallel, Isolated Workers)\nYou are the orchestrator. Delegate work to independent subagents using the Task tool.\nEach subagent gets its own context and works independently. They report back to you only.\nSubagents cannot communicate with each other — only with you.\nAfter all subagents complete, YOU synthesize their findings into a unified response.\nDo NOT do the work yourself. Delegate, wait, synthesize."
+  },
+  {
+    "name": "swarm",
+    "triggers": [
+      "swarm",
+      "agent team",
+      "agent teams",
+      "team mode",
+      "team up",
+      "assemble"
+    ],
+    "priority": 4,
+    "instruction": "EXECUTION MODE: AGENT TEAMS (Full Collaboration)\nCreate an agent team for this task. You are the team lead.\nSpawn teammates who each get their own context window and can message each other directly.\nTeammates should share findings, challenge each other, and coordinate via the shared task list.\nUse the TeamCreate, TaskCreate, and SendMessage tools to orchestrate.\nDo NOT do the work yourself — coordinate, delegate, and synthesize.\nAfter teammates complete their work, synthesize findings into a unified deliverable."
+  },
+  {
     "name": "use-opus",
-    "triggers": ["use opus", "opus mode", "with opus"],
+    "triggers": [
+      "use opus",
+      "opus mode",
+      "with opus"
+    ],
     "priority": 5,
     "instruction": "MODEL PREFERENCE: Use claude-opus-4-5-20251101 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"opus\".\nThis is the most capable and expensive model — use it for complex reasoning, architecture decisions, and thorough analysis."
   },
   {
     "name": "use-sonnet",
-    "triggers": ["use sonnet", "sonnet mode", "with sonnet"],
+    "triggers": [
+      "use sonnet",
+      "sonnet mode",
+      "with sonnet"
+    ],
     "priority": 5,
     "instruction": "MODEL PREFERENCE: Use claude-sonnet-4-20250514 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"sonnet\".\nThis is the balanced model — good reasoning at moderate cost."
   },
   {
     "name": "use-haiku",
-    "triggers": ["use haiku", "haiku mode", "with haiku", "cheap mode", "budget mode"],
+    "triggers": [
+      "use haiku",
+      "haiku mode",
+      "with haiku",
+      "cheap mode",
+      "budget mode"
+    ],
     "priority": 5,
     "instruction": "MODEL PREFERENCE: Use claude-haiku-4-5-20251001 for all Task tool subagent calls.\nWhen spawning agents via the Task tool, always set model: \"haiku\".\nThis is the fastest and cheapest model — use it to minimize cost. Accept reduced reasoning quality."
   },
   {
     "name": "thorough",
-    "triggers": ["thorough", "deep review", "detailed review", "security review"],
+    "triggers": [
+      "thorough",
+      "deep review",
+      "detailed review",
+      "security review"
+    ],
     "priority": 10,
     "instruction": "The user wants an exceptionally thorough analysis.\nTake extra time. Check every edge case. Consider security implications.\nDo NOT rush. Quality over speed. If reviewing code, check:\n- Every error path and edge case\n- Security: injection, auth, data exposure\n- Performance: N+1 queries, unnecessary allocations\n- Missing tests for new/changed behavior"
   },
   {
     "name": "ship",
-    "triggers": ["ship it", "ship", "lgtm", "lets go", "let's go"],
+    "triggers": [
+      "ship it",
+      "ship",
+      "lgtm",
+      "lets go",
+      "let's go"
+    ],
     "priority": 10,
     "instruction": "The user wants to move fast and get this done.\nBe concise. Skip lengthy explanations. Focus on action.\nMake decisions instead of asking questions when the answer is obvious.\nIf something needs to be done, just do it."
   }
