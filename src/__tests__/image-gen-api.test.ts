@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import { generateImage, isApiKeySet, classifyError } from '../image-gen/api.js';
+import { DEFAULT_IMAGE_MODEL } from '../image-gen/types.js';
 import { parseArgs } from '../image-gen/cli.js';
 
 // ---------------------------------------------------------------------------
@@ -174,7 +175,7 @@ describe('generateImage', () => {
     expect(result.success).toBe(true);
     expect(result.output).toBe('/tmp/test.png');
     expect(result.modelText).toBe('Here is your mountain scene');
-    expect(result.model).toBe('gemini-2.0-flash-preview-image-generation');
+    expect(result.model).toBe(DEFAULT_IMAGE_MODEL);
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       '/tmp/test.png',
       expect.any(Buffer)

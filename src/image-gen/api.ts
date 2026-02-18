@@ -5,9 +5,8 @@
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { DEFAULT_IMAGE_MODEL } from './types.js';
 import type { ImageGenOptions, ImageGenResult, ImageGenErrorReason } from './types.js';
-
-const DEFAULT_MODEL = 'gemini-2.0-flash-preview-image-generation';
 
 /**
  * Check whether the GEMINI_API_KEY environment variable is set.
@@ -78,7 +77,7 @@ export function classifyError(err: unknown): { error: ImageGenErrorReason; error
  */
 export async function generateImage(options: ImageGenOptions): Promise<ImageGenResult> {
   const { prompt, output, references, size, aspectRatio, model: requestedModel } = options;
-  const model = requestedModel ?? DEFAULT_MODEL;
+  const model = requestedModel ?? DEFAULT_IMAGE_MODEL;
 
   // Check API key
   const apiKey = process.env['GEMINI_API_KEY'];

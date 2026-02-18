@@ -4,9 +4,11 @@
 
 /**
  * Supported Gemini image generation models.
- * Currently only gemini-2.0-flash-preview-image-generation is available.
  */
-export type ImageModel = 'gemini-2.0-flash-preview-image-generation';
+export type ImageModel = 'gemini-2.0-flash-preview-image-generation' | 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview';
+
+/** Default model used for image generation. */
+export const DEFAULT_IMAGE_MODEL: ImageModel = 'gemini-3-pro-image-preview';
 
 /**
  * Options for generating an image.
@@ -22,7 +24,7 @@ export interface ImageGenOptions {
   size?: '1K' | '2K' | '4K';
   /** Aspect ratio (e.g. '16:9', '1:1') */
   aspectRatio?: string;
-  /** Model to use (defaults to gemini-2.0-flash-preview-image-generation) */
+  /** Model to use (defaults to DEFAULT_IMAGE_MODEL) */
   model?: ImageModel;
 }
 
