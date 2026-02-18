@@ -1,6 +1,6 @@
 {
   "name": "kw-plugin",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Claude Code plugin: code reviews, PR creation, team analytics, release management",
   "type": "module",
   "main": "dist/index.js",
@@ -32,6 +32,7 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "@google/genai": "^1.41.0",
     "jsonc-parser": "^3.3.1"
   }
 }

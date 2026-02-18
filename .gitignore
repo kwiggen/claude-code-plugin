@@ -35,6 +35,9 @@ build/
 .omc/
 .kw-plugin/
 
+# Generated images
+generated-images/
+
 # Python
 __pycache__/
 *.py[cod]

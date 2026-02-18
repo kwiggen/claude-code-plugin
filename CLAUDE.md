@@ -17,6 +17,8 @@ This is a Claude Code plugin that provides commands for code review, PR creation
 - `/validate` - Plan/architecture validation (backed by `assumption-challenger`, `antipattern-detector`, `validator` skills)
 - `/gemini-review` - Dual code review from Claude + Gemini (backed by `gemini-reviewer` skill)
 - `/ask-gemini` - Second opinion from Gemini (backed by `gemini-advisor` skill)
+- `/generate-image` - AI image generation with enhanced prompts (backed by `image-generator` skill)
+- `/paper-banana` - Publication-quality illustrations via 5-agent pipeline (backed by `paper-banana` skill)
 
 ## Architecture
 
@@ -62,6 +64,7 @@ description: |
   - `src/gemini/` — Gemini CLI wrapper (availability check, invocation, error classification)
   - `src/insights/` — Team analytics (11 report actions, CLI entrypoint at `dist/insights/cli.js`)
   - `src/releases/` — Release report data, classification, formatting, and actions
+  - `src/image-gen/` — Gemini image generation SDK wrapper (CLI entrypoint at `dist/image-gen/cli.js`)
 
 ### Build & Test
 
