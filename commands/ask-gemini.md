@@ -2,6 +2,7 @@
 description: "Ask Gemini for a second opinion on any file, topic, or question"
 argument-hint: "[file, topic, or question]"
 allowed-tools: ["Bash(node:*)", "Bash(cat:*)"]
+effort: medium
 ---
 
 # /ask-gemini

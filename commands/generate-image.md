@@ -2,6 +2,7 @@
 description: "Generate images using Gemini (Nano Banana) with AI-enhanced prompts"
 argument-hint: "[prompt or reference-image + prompt]"
 allowed-tools: ["Bash(node:*)", "Bash(test:*)", "Bash(mkdir:*)", "Bash(ls:*)", "Bash(npm:*)", "AskUserQuestion"]
+effort: medium
 ---
 
 # /generate-image

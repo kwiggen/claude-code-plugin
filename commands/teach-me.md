@@ -2,6 +2,7 @@
 description: "Pedagogical code walkthrough - teaches you about your own code changes"
 argument-hint: "[1|2|3|<PR#>] [--staged] [path/prefix]"
 allowed-tools: ["AskUserQuestion"]
+effort: high
 ---
 
 # /teach-me

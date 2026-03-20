@@ -2,6 +2,7 @@
 description: "Generate publication-quality illustrations using a 5-agent pipeline"
 argument-hint: "[description of illustration needed]"
 allowed-tools: ["Task", "TeamCreate", "TeamDelete", "TaskCreate", "TaskUpdate", "TaskList", "SendMessage", "AskUserQuestion", "Bash(node:*)", "Bash(test:*)", "Bash(mkdir:*)", "Bash(ls:*)", "Bash(npm:*)"]
+effort: max
 ---
 
 # /paper-banana

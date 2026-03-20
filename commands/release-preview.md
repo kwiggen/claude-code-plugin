@@ -2,6 +2,7 @@
 description: "Show what's shipping - run Sunday after release train is merged"
 argument-hint: "[days]"
 allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
+effort: medium
 ---
 
 # /release-preview

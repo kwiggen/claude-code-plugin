@@ -2,6 +2,7 @@
 description: "Dual code review from Claude + Gemini. Pass 1-3 for local changes or a PR number directly."
 argument-hint: "1|2|3|<PR#>"
 allowed-tools: ["AskUserQuestion", "Bash(node:*)", "Bash(gh pr comment:*)", "Bash(git:*)", "Bash(echo:*)"]
+effort: high
 ---
 
 # /gemini-review

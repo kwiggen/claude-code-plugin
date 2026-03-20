@@ -2,6 +2,7 @@
 description: "Create a GitHub issue and add it to ExamJam V.Next 25 project with Priority, Type, Initiative, and Status"
 argument-hint: "[title]"
 allowed-tools: ["Bash(git rev-parse:*)", "Bash(gh auth:*)", "Bash(gh issue:*)", "Bash(gh project:*)", "AskUserQuestion"]
+effort: medium
 ---
 
 # /create-issue

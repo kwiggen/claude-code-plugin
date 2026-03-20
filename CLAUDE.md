@@ -21,6 +21,19 @@ This is a Claude Code plugin that provides commands for code review, PR creation
 - `/paper-banana` - Publication-quality illustrations via 5-agent pipeline (backed by `paper-banana` skill)
 - `/teach-me` - Pedagogical code walkthrough (backed by `teach-me` skill)
 
+**Auto-triggering skills (no command):**
+- `assumption-challenger` - Surfaces and stress-tests implicit assumptions in plans and proposals
+- `antipattern-detector` - Detects common failure patterns in proposals, architectures, and plans
+
+**Global skills (installed separately, available in all projects):**
+- Google Workspace CLI (`gws`) skills — 40 skills, 10 personas, and 40 recipes for Gmail, Calendar, Drive, Sheets, Docs, Chat, Tasks, Meet, Keep, Forms, and more. Installed globally to `~/.claude/skills/` via:
+  ```bash
+  npm install -g @googleworkspace/cli   # Install the CLI
+  gws auth setup                        # Configure OAuth (requires gcloud CLI)
+  npx skills add https://github.com/googleworkspace/cli  # Install agent skills
+  ```
+  Docs: https://github.com/googleworkspace/cli
+
 ## Architecture
 
 ```
