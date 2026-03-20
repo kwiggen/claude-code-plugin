@@ -139,12 +139,17 @@ Check:
 - Is the quality sufficient for the intended purpose?
 - Are there artifacts, distortions, or unwanted elements?
 
-Provide a verdict:
-- APPROVED: Image meets spec, ready for delivery
-- NEEDS_REVISION: List specific issues and suggest prompt adjustments
-- REJECTED: Fundamental problems, needs new approach
+Report status using the standard subagent protocol:
 
-If NEEDS_REVISION, provide specific prompt modifications for the Visualizer.
+| Status | Meaning | Action |
+|--------|---------|--------|
+| **DONE** | Image meets spec, ready for delivery | Proceed to delivery |
+| **DONE_WITH_CONCERNS** | Image is acceptable but has minor issues worth noting | Deliver with notes |
+| **NEEDS_CONTEXT** | Cannot evaluate — missing spec, style guide, or reference | Request missing input |
+| **BLOCKED** | Fundamental problems — needs a completely new approach | Report to orchestrator |
+
+If status is DONE_WITH_CONCERNS, include specific issues and suggest prompt
+adjustments for an optional refinement pass.
 ```
 
 ### Step 4: Monitor and Iterate
