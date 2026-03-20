@@ -2,6 +2,7 @@
 description: "Run code review using the code-reviewer skill. Pass 1-3 for local changes or a PR number directly."
 argument-hint: "1|2|3|<PR#>"
 allowed-tools: ["AskUserQuestion", "Bash(gh pr comment:*)"]
+effort: high
 ---
 
 # /review-code

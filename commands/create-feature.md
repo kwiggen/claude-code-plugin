@@ -2,6 +2,7 @@
 description: "Guide feature definition through discussion, generate a 1-pager, and create a GitHub issue"
 argument-hint: "[feature-name]"
 allowed-tools: ["Bash(git rev-parse:*)", "Bash(gh auth:*)", "Bash(gh issue:*)", "Bash(gh project:*)", "AskUserQuestion"]
+effort: high
 ---
 
 # /create-feature

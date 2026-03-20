@@ -2,6 +2,7 @@
 description: "Show what happened - run Tuesday after prod stabilizes"
 argument-hint: "[days]"
 allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
+effort: medium
 ---
 
 # /release-retro

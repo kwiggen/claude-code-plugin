@@ -2,6 +2,7 @@
 description: "Create a PR with an AI-generated best-in-class description based on commits"
 argument-hint: "[base-branch]"
 allowed-tools: ["Bash(git:*)", "Bash(gh pr create:*)", "Bash(gh pr view:*)", "AskUserQuestion"]
+effort: medium
 ---
 
 # /create-pr

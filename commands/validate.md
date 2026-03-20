@@ -2,6 +2,7 @@
 description: "Validate plans, proposals, roadmaps, or architecture with parallel team analysis"
 argument-hint: "[plan description, @file, or topic]"
 allowed-tools: ["AskUserQuestion", "Task", "TeamCreate", "TeamDelete", "TaskCreate", "TaskUpdate", "TaskList", "SendMessage"]
+effort: max
 ---
 
 # /validate

@@ -2,6 +2,7 @@
 description: "Show team GitHub activity - PRs, reviews, merge times, bottlenecks, quality signals"
 argument-hint: "[action] [days]"
 allowed-tools: ["Bash(node:*)", "Bash(gh:*)"]
+effort: medium
 ---
 
 # /team-stats
