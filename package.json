@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prebuild": "node --eval \"import { readFileSync, writeFileSync } from 'fs'; const pkg = JSON.parse(readFileSync('package.json','utf8')); const plugin = JSON.parse(readFileSync('.claude-plugin/plugin.json','utf8')); pkg.version = plugin.version; writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');\"",
+    "prebuild": "node scripts/sync-version.mjs",
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",

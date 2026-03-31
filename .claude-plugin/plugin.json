@@ -1,9 +1,14 @@
 {
     "name": "kw-plugin",
-    "description": "Plugin to wrap my extensions to Claude Code",
     "version": "0.16.2",
+    "description": "Plugin to wrap my extensions to Claude Code",
     "author": {
         "name": "Kevin Wiggen"
     },
-    "skills": "./skills/"
+    "repository": "https://github.com/kwiggen/claude-code-plugin",
+    "license": "MIT",
+    "keywords": ["code-review", "github", "pull-requests", "team-insights", "gemini"],
+    "commands": "./commands/",
+    "skills": "./skills/",
+    "hooks": "./hooks/hooks.json"
 }
