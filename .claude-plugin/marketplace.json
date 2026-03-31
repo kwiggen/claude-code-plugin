@@ -4,13 +4,20 @@
     "name": "Kevin Wiggen"
   },
   "metadata": {
-    "description": "GitHub workflow automation for Claude Code"
+    "description": "GitHub workflow automation for Claude Code",
+    "version": "0.16.2"
   },
   "plugins": [
     {
       "name": "kw-plugin",
       "source": ".",
-      "description": "Code reviews, PR creation, team analytics, and release management"
+      "description": "Code reviews, PR creation, team analytics, and release management",
+      "version": "0.16.2",
+      "author": {
+        "name": "Kevin Wiggen"
+      },
+      "repository": "https://github.com/kwiggen/claude-code-plugin",
+      "license": "MIT"
     }
   ]
 }
