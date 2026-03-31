@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "kw-plugin",
-      "source": ".",
+      "source": "./",
       "description": "Code reviews, PR creation, team analytics, and release management",
       "version": "0.16.2",
       "author": {
