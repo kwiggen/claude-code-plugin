@@ -106,7 +106,7 @@ stdout → JSON { continue: true/false, message?, hookSpecificOutput? }
 
 ## Version Management
 
-Bump version in `.claude-plugin/plugin.json` when making changes.
+Bump version in `.claude-plugin/plugin.json` when making changes. **Do not edit the version in `package.json`** — it is automatically synced from `plugin.json` via the `prebuild` script each time `npm run build` runs.
 
 ## Before Completing Tasks
 

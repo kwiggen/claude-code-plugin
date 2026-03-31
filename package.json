@@ -1,11 +1,12 @@
 {
   "name": "kw-plugin",
-  "version": "0.14.0",
+  "version": "0.16.2",
   "description": "Claude Code plugin: code reviews, PR creation, team analytics, release management",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prebuild": "node --eval \"import { readFileSync, writeFileSync } from 'fs'; const pkg = JSON.parse(readFileSync('package.json','utf8')); const plugin = JSON.parse(readFileSync('.claude-plugin/plugin.json','utf8')); pkg.version = plugin.version; writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');\"",
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
