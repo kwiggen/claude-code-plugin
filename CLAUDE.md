@@ -20,6 +20,7 @@ This is a Claude Code plugin that provides commands for code review, PR creation
 - `/generate-image` - AI image generation with enhanced prompts (backed by `image-generator` skill)
 - `/paper-banana` - Publication-quality illustrations via 5-agent pipeline (backed by `paper-banana` skill)
 - `/teach-me` - Pedagogical code walkthrough (backed by `teach-me` skill)
+- `/grill-me` - Stress-test a plan or design with relentless interviewing (backed by `grill-me` skill)
 
 **Auto-triggering skills (no command):**
 - `assumption-challenger` - Surfaces and stress-tests implicit assumptions in plans and proposals
@@ -106,7 +107,7 @@ stdout → JSON { continue: true/false, message?, hookSpecificOutput? }
 
 ## Version Management
 
-Bump version in `.claude-plugin/plugin.json` when making changes. **Do not edit versions in `package.json` or `.claude-plugin/marketplace.json`** — both are automatically synced from `plugin.json` via `scripts/sync-version.mjs` each time `npm run build` runs.
+**Single source of truth:** `.claude-plugin/plugin.json` — bump the version there when making changes (minor for new features/commands, patch for fixes). **Do not edit versions in `package.json` or `.claude-plugin/marketplace.json`** — both are automatically synced from `plugin.json` via `scripts/sync-version.mjs` each time `npm run build` runs.
 
 ## Before Completing Tasks
 
