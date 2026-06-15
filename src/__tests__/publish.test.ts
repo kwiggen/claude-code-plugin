@@ -114,17 +114,29 @@ describe('buildDocument', () => {
     expect(html).toContain('</html>');
   });
 
-  it('should include base CSS', () => {
+  it('should include Simple.css base and overrides', () => {
     const html = buildDocument(baseParts);
-    expect(html).toContain('max-width: 680px');
-    expect(html).toContain('system-ui');
-    expect(html).toContain('ui-monospace');
+    expect(html).toContain('--sans-font');
+    expect(html).toContain('--mono-font');
+    expect(html).toContain('prefers-color-scheme');
+    expect(html).toContain('font-size: 2rem');
+  });
+
+  it('should include color-scheme meta for dark mode', () => {
+    const html = buildDocument(baseParts);
+    expect(html).toContain('<meta name="color-scheme" content="light dark">');
   });
 
   it('should include print styles', () => {
     const html = buildDocument(baseParts);
     expect(html).toContain('@media print');
-    expect(html).toContain('page-break-inside: avoid');
+  });
+
+  it('should use main element as container', () => {
+    const html = buildDocument(baseParts);
+    expect(html).toContain('<main>');
+    expect(html).toContain('</main>');
+    expect(html).not.toContain('<article>');
   });
 
   it('should render flat sections when not tabbed', () => {
@@ -198,13 +210,13 @@ describe('buildDocument', () => {
 
   it('should apply briefing template overrides', () => {
     const html = buildDocument({ ...baseParts, template: 'briefing' });
-    expect(html).toContain('font-size: 1.0625rem');
-    expect(html).toContain('font-size: 1.875rem');
+    expect(html).toContain('font-size: 1.2rem');
+    expect(html).toContain('font-size: 2.5rem');
   });
 
   it('should apply report template overrides', () => {
     const html = buildDocument({ ...baseParts, template: 'report' });
-    expect(html).toContain('border-left-color: #3b82f6');
+    expect(html).toContain('border-inline-start-color: var(--accent)');
   });
 
   it('should apply review template diff styles', () => {
