@@ -15,8 +15,10 @@ tree, resolving dependencies between decisions one by one.
 ## Before Starting
 
 1. **Read CLAUDE.md files** and relevant codebase context so you can ask informed questions
-2. **Identify the subject** — What is the plan, design, or proposal being grilled?
-3. **Map the decision tree** — Enumerate the top-level branches (architecture, data model, API design, deployment, scaling, failure modes, security, UX, etc.) that need to be explored
+2. **If CONTEXT.md exists**, read it — this is the project's shared language. Use its terms. Challenge the user if they contradict it.
+3. **If `docs/adr/` exists**, scan existing ADRs — don't relitigate settled decisions unless the user explicitly wants to revisit one
+4. **Identify the subject** — What is the plan, design, or proposal being grilled?
+5. **Map the decision tree** — Enumerate the top-level branches (architecture, data model, API design, deployment, scaling, failure modes, security, UX, etc.) that need to be explored
 
 ## Interview Protocol
 
@@ -60,6 +62,63 @@ Continue until one of:
 - The user says they've had enough
 - You've exhausted your questions (rare — there are always more questions)
 
+## Persisting Decisions
+
+As the interview progresses, capture decisions inline — not as a batch at the end.
+
+### CONTEXT.md (Domain Language)
+
+When a domain term is resolved during the interview, update `CONTEXT.md` at the
+project root immediately. Create the file lazily (only when the first term is resolved).
+
+**Format:**
+```markdown
+# Project Context
+
+## Language
+
+**Order**: A customer's request to purchase one or more items, tracked from creation through fulfillment.
+_Avoid_: Purchase, transaction, request
+
+**Cancellation**: Customer-initiated reversal before fulfillment. Distinct from refund (post-fulfillment).
+_Avoid_: Reversal (ambiguous — could mean refund)
+```
+
+**When to update:**
+- A term is defined or disambiguated during the interview
+- The user uses a word that conflicts with an existing CONTEXT.md entry — interrupt and resolve
+- A new concept emerges that future sessions need to know about
+
+**When to challenge:**
+- The user uses a term inconsistently with what's already in CONTEXT.md
+- The user uses a vague term ("the system", "the thing", "it") for something that needs a name
+
+### ADRs (Architectural Decision Records)
+
+Write an ADR to `docs/adr/NNNN-title.md` only when ALL THREE are true:
+1. **Hard to reverse** — the cost of changing your mind later is meaningful
+2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
+3. **Result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
+
+If any of the three is missing, skip the ADR. Rare ADRs are valuable ADRs.
+
+**ADR format (keep it short — one paragraph is often enough):**
+```markdown
+# NNNN: [Decision Title]
+
+**Status:** Accepted
+**Date:** [YYYY-MM-DD]
+
+## Context
+[Why this decision was needed — 1-2 sentences]
+
+## Decision
+[What was decided — 1-2 sentences]
+
+## Consequences
+[What follows from this decision — good and bad]
+```
+
 ## When Finished
 
 Deliver a **Decision Summary** that captures what was resolved:
@@ -83,6 +142,9 @@ Deliver a **Decision Summary** that captures what was resolved:
 - [Risk that was acknowledged but accepted] — [Mitigation if any]
 - ...
 ```
+
+Note: If CONTEXT.md or ADRs were created/updated during the session, mention
+which entries were added so the user can review them.
 
 ## Tone
 
