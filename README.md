@@ -1,6 +1,6 @@
 # Claude Code Plugin
 
-A Claude Code plugin for automating GitHub workflows: code reviews, PR creation, team analytics, release management, and multi-model second opinions via Gemini.
+A Claude Code plugin for automating GitHub workflows: code reviews, PR creation, and multi-model second opinions via Gemini.
 
 ## Installation
 
@@ -50,43 +50,6 @@ Run `/plugin`, go to Marketplaces tab, enable auto-update for `claude-code-plugi
 
 > **Requires:** `GEMINI_API_KEY` environment variable. Get a free key at [Google AI Studio](https://aistudio.google.com/apikey). If the API key is not configured, the dual-review and advisor commands gracefully fall back to Claude-only behavior.
 
-### Team Analytics
-
-| Command | Description |
-|---------|-------------|
-| `/team-stats` | Team activity overview (PRs, reviews, contributors) |
-| `/team-stats leaderboard` | Top contributors by PRs merged |
-| `/team-stats merge-time` | Time-to-merge analysis |
-| `/team-stats reviews` | Review participation report |
-| `/team-stats size` | PR size analysis with bottleneck detection |
-| `/team-stats first-review` | Time to first review per developer |
-| `/team-stats balance` | Reviews given vs received ratio |
-| `/team-stats reverts` | Track reverts and hotfixes |
-| `/team-stats depth` | Detect rubber stamp reviews |
-| `/team-stats cycles` | Rounds of feedback before merge |
-| `/team-stats all` | Run all reports |
-
-All team-stats commands accept an optional day range: `/team-stats leaderboard 14`
-
-### Release Management
-
-| Command | Description |
-|---------|-------------|
-| `/release-preview` | What's shipping (run Sunday after release train merges) |
-| `/release-retro` | What happened (run Tuesday after prod stabilizes) |
-
-**Release Preview** shows:
-- All PRs in the release with size breakdown
-- Risk flags (large PRs, quick approvals)
-- Hotfixes needing backmerge
-- AI-generated release notes
-
-**Release Retro** shows:
-- Release timeline and outcome
-- Hotfix breakdown (staging vs release)
-- 4-week trend analysis
-- Action items for pending backmerges
-
 ### Planning & Validation
 
 | Command | Description |
@@ -94,6 +57,14 @@ All team-stats commands accept an optional day range: `/team-stats leaderboard 1
 | `/create-feature` | Guide feature definition through discussion, generate a 1-pager |
 | `/create-issue` | Create a GitHub issue with project fields |
 | `/validate` | Validate plans, proposals, or architecture with parallel analysis |
+
+### Learning & Publishing
+
+| Command | Description |
+|---------|-------------|
+| `/teach-me` | Pedagogical code walkthrough tailored to your level |
+| `/grill-me` | Stress-test a plan or design with relentless interviewing |
+| `/publish` | Convert markdown to portable, shareable HTML with syntax highlighting and tabs |
 
 ## Magic Keywords
 
@@ -105,7 +76,6 @@ Type these phrases naturally instead of using slash commands:
 | "gemini review", "dual review" | Triggers `/gemini-review` |
 | "ask gemini", "gemini opinion" | Triggers `/ask-gemini` |
 | "create pr", "open pr" | Triggers `/create-pr` |
-| "team stats", "who merged" | Triggers `/team-stats` |
 | "use opus" / "use sonnet" / "use haiku" | Sets model preference for subagents |
 | "thorough", "deep review" | Enables thorough analysis mode |
 | "ship it", "lgtm" | Enables fast-execution mode |
@@ -116,14 +86,15 @@ Type these phrases naturally instead of using slash commands:
 |-------|---------|
 | `code-reviewer` | `/review-code` |
 | `pr-writer` | `/create-pr` |
-| `github-insights` | `/team-stats` |
-| `release-reports` | `/release-preview`, `/release-retro` |
 | `feature-writer` | `/create-feature` |
 | `issue-creator` | `/create-issue` |
 | `gemini-reviewer` | `/gemini-review` |
 | `gemini-advisor` | `/ask-gemini` |
 | `image-generator` | `/generate-image` |
 | `paper-banana` | `/paper-banana` |
+| `teach-me` | `/teach-me` |
+| `grill-me` | `/grill-me` |
+| `publish` | `/publish` |
 | `assumption-challenger` | `/validate` |
 | `antipattern-detector` | `/validate` |
 | `validator` | `/validate` |
@@ -152,11 +123,9 @@ If the API key is not configured, the dual-review and advisor commands gracefull
 .claude-plugin/plugin.json   # Plugin metadata
 commands/                    # Slash command definitions
 skills/                      # Skill implementations (SKILL.md files)
-src/github/                  # GitHub CLI wrapper (gh integration)
 src/gemini/                  # Gemini text generation API wrapper
 src/image-gen/               # Gemini image generation API wrapper
-src/insights/                # Team analytics engine
-src/releases/                # Release report engine
+src/publish/                 # Markdown-to-HTML converter
 src/features/                # Magic keywords, hooks
 src/config/                  # Config loading & merging
 src/state/                   # File-based state management
