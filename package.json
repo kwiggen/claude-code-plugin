@@ -1,6 +1,6 @@
 {
   "name": "kw-plugin",
-  "version": "0.16.3",
+  "version": "0.17.0",
   "description": "Claude Code plugin: code reviews, PR creation, team analytics, release management",
   "type": "module",
   "main": "dist/index.js",
@@ -19,11 +19,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.6.0",
-    "eslint": "^10.2.1",
+    "@types/node": "^25.9.3",
+    "eslint": "^10.5.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.0",
-    "vitest": "^4.1.5"
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=20.11.0",
@@ -34,6 +34,9 @@
   "private": true,
   "dependencies": {
     "@google/genai": "^1.50.1",
-    "jsonc-parser": "^3.3.1"
+    "jsonc-parser": "^3.3.1",
+    "marked": "^18.0.5",
+    "shiki": "^4.2.0",
+    "simpledotcss": "^2.3.7"
   }
 }

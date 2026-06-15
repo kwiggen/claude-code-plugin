@@ -21,6 +21,7 @@ This is a Claude Code plugin that provides commands for code review, PR creation
 - `/paper-banana` - Publication-quality illustrations via 5-agent pipeline (backed by `paper-banana` skill)
 - `/teach-me` - Pedagogical code walkthrough (backed by `teach-me` skill)
 - `/grill-me` - Stress-test a plan or design with relentless interviewing (backed by `grill-me` skill)
+- `/publish` - Convert markdown to portable, shareable HTML with syntax highlighting and tabs (backed by `publish` skill)
 
 **Auto-triggering skills (no command):**
 - `assumption-challenger` - Surfaces and stress-tests implicit assumptions in plans and proposals
@@ -80,6 +81,7 @@ description: |
   - `src/insights/` — Team analytics (11 report actions, CLI entrypoint at `dist/insights/cli.js`)
   - `src/releases/` — Release report data, classification, formatting, and actions
   - `src/image-gen/` — Gemini image generation API wrapper (CLI entrypoint at `dist/image-gen/cli.js`)
+  - `src/publish/` — Markdown-to-HTML converter with shiki syntax highlighting and tabbed navigation (CLI entrypoint at `dist/publish/cli.js`)
 
 ### Build & Test
 
