@@ -4,16 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Claude Code plugin that provides commands for code review, PR creation, team GitHub insights, and multi-model second opinions via Gemini API.
+This is a Claude Code plugin that provides commands for code review, PR creation, and multi-model second opinions via Gemini API.
 
 **Commands:**
 - `/review-code` - Code review (backed by `code-reviewer` skill)
 - `/create-pr` - PR creation (backed by `pr-writer` skill)
-- `/team-stats` - GitHub team activity (backed by `github-insights` skill)
 - `/create-feature` - Feature definition via discussion (backed by `feature-writer` skill)
 - `/create-issue` - GitHub issue creation (backed by `issue-creator` skill)
-- `/release-preview` - Release preview report (backed by `release-reports` skill)
-- `/release-retro` - Release retrospective (backed by `release-reports` skill)
 - `/validate` - Plan/architecture validation (backed by `assumption-challenger`, `antipattern-detector`, `validator` skills)
 - `/gemini-review` - Dual code review from Claude + Gemini (backed by `gemini-reviewer` skill)
 - `/ask-gemini` - Second opinion from Gemini (backed by `gemini-advisor` skill)
@@ -75,11 +72,8 @@ description: |
 
 ## TypeScript Infrastructure
 
-- **TypeScript** (`src/`): Hooks, config, GitHub insights CLI, Gemini API, HUD, release reports
-  - `src/github/` — Shared GitHub API wrapper (gh CLI integration, types)
+- **TypeScript** (`src/`): Hooks, config, Gemini API, HUD
   - `src/gemini/` — Gemini text generation API wrapper (`@google/genai` SDK, CLI entrypoint at `dist/gemini/cli.js`)
-  - `src/insights/` — Team analytics (11 report actions, CLI entrypoint at `dist/insights/cli.js`)
-  - `src/releases/` — Release report data, classification, formatting, and actions
   - `src/image-gen/` — Gemini image generation API wrapper (CLI entrypoint at `dist/image-gen/cli.js`)
   - `src/publish/` — Markdown-to-HTML converter with shiki syntax highlighting and tabbed navigation (CLI entrypoint at `dist/publish/cli.js`)
 

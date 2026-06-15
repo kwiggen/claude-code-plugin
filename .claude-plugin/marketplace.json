@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "GitHub workflow automation for Claude Code",
-    "version": "0.17.0"
+    "version": "0.18.0"
   },
   "plugins": [
     {
       "name": "kw-plugin",
       "source": "./",
-      "description": "Code reviews, PR creation, team analytics, and release management",
-      "version": "0.17.0",
+      "description": "Code reviews, PR creation, and multi-model second opinions via Gemini",
+      "version": "0.18.0",
       "author": {
         "name": "Kevin Wiggen"
       },

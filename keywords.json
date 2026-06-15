@@ -174,19 +174,6 @@
     "instruction": "The user wants to create a pull request.\nYou MUST invoke the kw-plugin:create-pr skill using the Skill tool."
   },
   {
-    "name": "stats",
-    "triggers": [
-      "team stats",
-      "team activity",
-      "who merged",
-      "pr stats",
-      "github stats"
-    ],
-    "priority": 3,
-    "skill": "kw-plugin:team-stats",
-    "instruction": "The user wants to see team GitHub activity.\nYou MUST invoke the kw-plugin:team-stats skill using the Skill tool."
-  },
-  {
     "name": "solo",
     "triggers": [
       "solo",
