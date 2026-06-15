@@ -1,7 +1,7 @@
 ---
 description: "Stress-test a plan or design with relentless interviewing"
 argument-hint: "[plan description, @file, or topic]"
-allowed-tools: ["AskUserQuestion", "Agent", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["AskUserQuestion", "Agent", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 effort: max
 ---
 
@@ -39,5 +39,6 @@ Apply the **grill-me** skill:
 2. Begin the interview — one question at a time, depth-first
 3. For each question, explore the codebase first if possible, then provide your recommended answer
 4. Track resolved vs. open branches
-5. Continue until all branches are resolved or the user ends the session
-6. Deliver the Decision Summary
+5. **Persist decisions inline** — update CONTEXT.md with resolved terms, write ADRs when the three-gate rule is met
+6. Continue until all branches are resolved or the user ends the session
+7. Deliver the Decision Summary (noting any CONTEXT.md or ADR updates made)
